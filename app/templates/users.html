@@ -1,0 +1,645 @@
+{% extends "navbar.html" %}
+
+{% block title %}Gerenciar Usuários{% endblock %}
+
+{% block content %}
+<div class="manage-users-page">
+  <div class="container">
+    {% include 'partials/_flash_messages.html' %}
+
+    <div class="manage-users-header">
+      <div class="manage-users-header-content">
+        <div class="manage-users-title-section">
+          <h1 class="manage-users-main-title">
+            <i class="bi bi-people-fill"></i>
+            Gerenciar Usuários
+          </h1>
+          <p class="manage-users-subtitle">
+            Administre usuários e suas permissões no sistema
+          </p>
+        </div>
+        <div class="manage-users-actions">
+          <button class="manage-users-create-btn" data-bs-toggle="modal" data-bs-target="#criarUsuarioModal">
+            <i class="bi bi-plus-circle"></i>
+            Novo Usuário
+          </button>
+          <a href="{{ url_for('main.panel') }}" class="manage-users-back-btn">
+            <i class="bi bi-arrow-left-circle"></i>
+            Voltar ao Painel
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="manage-users-filters">
+      <div class="manage-users-filters-content">
+        <div class="manage-users-filters-left">
+          <div class="manage-users-search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="searchInput" placeholder="Pesquisar por nome ou usuário..." value="{{ request.args.get('search', '') }}" />
+          </div>
+        </div>
+        <div class="manage-users-filters-right">
+          <div class="manage-users-filter-group">
+            <label class="manage-users-filter-label">Status:</label>
+            <select id="statusFilter" class="form-select">
+              <option value="" {% if not request.args.get('status') %}selected{% endif %}>Todos</option>
+              <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Liberados</option>
+              <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Bloqueados</option>
+            </select>
+          </div>
+          <div class="manage-users-filter-group">
+            <label class="manage-users-filter-label">Ordenar por:</label>
+            <select id="sortFilter" class="form-select">
+              <option value="date_desc" {% if request.args.get('sort', 'date_desc') == 'date_desc' %}selected{% endif %}>Data (Mais recente)</option>
+              <option value="date_asc" {% if request.args.get('sort') == 'date_asc' %}selected{% endif %}>Data (Mais antigo)</option>
+              <option value="name_asc" {% if request.args.get('sort') == 'name_asc' %}selected{% endif %}>Nome (A-Z)</option>
+              <option value="name_desc" {% if request.args.get('sort') == 'name_desc' %}selected{% endif %}>Nome (Z-A)</option>
+            </select>
+          </div>
+          <button id="applyFilters" class="manage-users-apply-btn" title="Aplicar filtros">
+            <i class="bi bi-search"></i>
+            Filtrar
+          </button>
+          <button id="clearFilters" class="manage-users-clear-btn" title="Limpar filtros">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      {% if users %}
+      <div class="manage-users-results-info">
+        <div class="manage-users-results-text">
+          <i class="bi bi-info-circle"></i>
+          Exibindo {{ users|length }} usuário(s)
+          {% if request.args.get('search') or request.args.get('status') %}
+          com os filtros aplicados
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="manage-users-section">
+      <div class="manage-users-table-container">
+        {% if users %}
+        <table class="manage-users-table table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>
+                <i class="bi bi-person-badge me-2"></i>
+                Usuário
+              </th>
+              <th style="text-align: center;">
+                <i class="bi bi-at me-2"></i>
+                Login
+              </th>
+              <th style="width: 20%; text-align: center;">
+                <i class="bi bi-shield-check me-2"></i>
+                Status
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr class="user-row" data-bs-toggle="modal" data-bs-target="#infoUsuarioModal" data-user-id="{{ user.id }}" data-user-nome="{{ user.name }}" data-user-usuario="{{ user.username }}" data-user-email="{{ user.email | default('') }}" data-user-roles="{{ user.roles | map(attribute='name') | list | join(',') }}" data-user-permissions="{{ user.get_permissions() | join(',') }}" data-user-is-active="{{ user.is_active | tojson }}">
+              <td class="user-name-cell">
+                <div class="user-info-container">
+                  <div class="user-avatar">
+                    <i class="bi bi-person-circle"></i>
+                  </div>
+                  <div class="user-details">
+                    <p class="user-name">{{ user.name }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="user-username-cell" style="text-align:center;">
+                <span class="user-username">{{ user.username }}</span>
+              </td>
+              <td class="user-status-cell" style="text-align:center;">
+                {% if user.is_active %}
+                <span class="user-status-badge status-active">
+                  <i class="bi bi-check-circle-fill"></i>
+                  Liberado
+                </span>
+                {% else %}
+                <span class="user-status-badge status-inactive">
+                  <i class="bi bi-x-circle-fill"></i>
+                  Bloqueado
+                </span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="manage-users-empty">
+          <div class="manage-users-empty-icon">
+            <i class="bi bi-people"></i>
+          </div>
+          <h3 class="manage-users-empty-title">Nenhum usuário encontrado</h3>
+          <p class="manage-users-empty-text">Comece adicionando o primeiro usuário ao sistema.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if pagination %}
+    <div class="manage-users-pagination">
+      <nav aria-label="Navegação de usuários">
+        <ul class="pagination">
+          <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.users.list_users', page=pagination.prev_num) }}">Anterior</a>
+          </li>
+          {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if page_num %}
+          <li class="page-item {% if pagination.page == page_num %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.users.list_users', page=page_num) }}">{{ page_num }}</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+          {% endfor %}
+          <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('admin.users.list_users', page=pagination.next_num) }}">Próximo</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+
+    <!-- Criar Usuário Modal -->
+    <div class="modal fade" id="criarUsuarioModal" tabindex="-1" aria-labelledby="criarUsuarioModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="POST" action="{{ url_for('admin.users.list_users') }}">
+            <div class="modal-header">
+              <h5 class="modal-title" id="criarUsuarioModalLabel">
+                <i class="bi bi-person-plus-fill"></i>
+                Criar Novo Usuário
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="name" class="form-label">
+                    <i class="bi bi-person-fill"></i>
+                    Nome completo
+                    <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="name" name="name" required placeholder="Digite o nome completo" />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="username" class="form-label">
+                    <i class="bi bi-at"></i>
+                    Nome de usuário
+                    <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="username" name="username" required placeholder="Digite o username" />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="email" class="form-label">
+                  <i class="bi bi-envelope-fill"></i>
+                  E-mail
+                  <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="bi bi-envelope-fill"></i>
+                  </span>
+                  <input type="email" class="form-control" id="email" name="email" placeholder="email@dominio.com" required />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="password" class="form-label">
+                  <i class="bi bi-key-fill"></i>
+                  Senha
+                  <span class="text-danger">*</span>
+                </label>
+                <input type="password" class="form-control" id="password" name="password" required placeholder="Digite uma senha segura" />
+              </div>
+              {% if available_roles %}
+              <fieldset class="mb-4">
+                <legend>
+                  <i class="bi bi-shield-check"></i>
+                  Setor do Usuário
+                </legend>
+                <div class="row">
+                  {% for role in available_roles %}
+                  <div class="col-md-6 mb-2">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="roles" value="{{ role.name }}" id="role_criar_{{ role.id }}" />
+                      <label class="form-check-label" for="role_criar_{{ role.id }}">
+                        <i class="bi bi-person-badge text-primary"></i>
+                        {{ role.name }}
+                      </label>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </fieldset>
+              {% endif %}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                <i class="bi bi-x-lg"></i>
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle-fill"></i>
+                Criar Usuário
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Usuário Modal -->
+    <div class="modal fade" id="infoUsuarioModal" tabindex="-1" aria-labelledby="infoUsuarioModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="infoUsuarioModalLabel">
+              <i class="bi bi-person-badge"></i>
+              Detalhes do Usuário
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="user-info-section">
+              <h6 class="section-title">
+                <i class="bi bi-info-circle"></i>
+                Informações Atuais
+              </h6>
+              <div class="info-grid">
+                <div class="info-item">
+                  <div class="info-label">Nome Completo:</div>
+                  <p class="info-value" id="modalUserName">-</p>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Login:</div>
+                  <p class="info-value" id="modalUserLogin">-</p>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">E-mail:</div>
+                  <p class="info-value" id="modalUserEmail">-</p>
+                </div>
+                <div class="info-item">
+                  <div class="info-label">Status da Usuário:</div>
+                  <div id="modalUserStatusDisplay">
+                    <span class="permission-badge badge-none">Carregando...</span>
+                  </div>
+                </div>
+              </div>
+              <div class="roles-display">
+                <div class="roles-label">Roles Atuais:</div>
+                <div class="roles-list" id="modalUserRoles">
+                  <span class="role-badge role-none">Carregando...</span>
+                </div>
+              </div>
+              <div class="permissions-display">
+                <div class="permissions-label">Permissões Atuais:</div>
+                <div class="permissions-list" id="modalUserPermissions">
+                  <span class="permission-badge badge-none">Carregando...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Editar Dados Básicos -->
+            <div class="mb-4">
+              <h6 class="section-title">
+                <i class="bi bi-person-gear"></i>
+                Editar Dados Básicos
+              </h6>
+              <form id="formEditarDadosBasicos" method="POST" action="">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="edit_name" class="form-label">
+                      <i class="bi bi-person-fill"></i>
+                      Nome completo
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="edit_name" name="name" required />
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="edit_username" class="form-label">
+                      <i class="bi bi-at"></i>
+                      Nome de usuário
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="edit_username" name="username" required />
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="edit_email" class="form-label">
+                    <i class="bi bi-envelope-fill"></i>
+                    E-mail
+                    <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="bi bi-envelope-fill"></i>
+                    </span>
+                    <input type="email" class="form-control" id="edit_email" name="email" required />
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-check-circle-fill"></i>
+                  Salvar Dados Básicos
+                </button>
+              </form>
+            </div>
+
+            <!-- Editar Roles RBAC -->
+            <div class="mb-4">
+              <h6 class="section-title">
+                <i class="bi bi-person-badge"></i>
+                Gerenciar Roles
+              </h6>
+              <form id="formEditarRoles" method="POST" action="">
+                <fieldset>
+                  <legend>
+                    <i class="bi bi-gear-wide-connected"></i>
+                    Atribuir Roles ao Usuário
+                  </legend>
+                  {% if available_roles %}
+                  <div class="row">
+                    {% for role in available_roles %}
+                    <div class="col-md-6 mb-2">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="roles_edit" value="{{ role.name }}" id="role_edit_{{ role.id }}" />
+                        <label class="form-check-label" for="role_edit_{{ role.id }}">
+                          <i class="bi bi-person-badge text-primary"></i>
+                          {{ role.name }}
+                          {% if role.description %}
+                          <small class="text-muted d-block">{{ role.description }}</small>
+                          {% endif %}
+                        </label>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <p class="text-muted">Nenhuma role cadastrada.</p>
+                  {% endif %}
+                </fieldset>
+                <button type="submit" class="btn btn-success w-100">
+                  <i class="bi bi-check-circle-fill"></i>
+                  Salvar Roles
+                </button>
+              </form>
+            </div>
+
+            <div class="actions-section">
+              <h6 class="section-title">
+                <i class="bi bi-gear-wide-connected"></i>
+                Outras Ações
+              </h6>
+              <div class="action-item">
+                <div class="action-label">Redefinir Senha do Usuário:</div>
+                <form id="formAlterarSenhaAdmin" method="POST" action="">
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="bi bi-key-fill"></i>
+                    </span>
+                    <input type="password" class="form-control" name="nova_senha" id="novaSenhaAdminInput" placeholder="Digite a nova senha" required />
+                    <button class="btn btn-primary" type="submit">
+                      <i class="bi bi-key-fill"></i>
+                      Redefinir
+                    </button>
+                  </div>
+                </form>
+              </div>
+              <div class="action-item">
+                <div class="action-label">Status da Conta:</div>
+                <form id="formToggleUserStatus" method="POST" action="">
+                  <button id="btnToggleUserStatus" type="submit" class="btn w-100">
+                    <i class="bi bi-hourglass-split"></i>
+                    Carregando Status...
+                  </button>
+                </form>
+              </div>
+              <div class="action-item">
+                <div class="action-label">Remover Usuário:</div>
+                <form id="formDeletarUsuario" method="POST" action="" onsubmit="return confirm('Tem certeza que deseja deletar este usuário? Esta ação não pode ser desfeita.')">
+                  <button class="btn btn-danger w-100" type="submit">
+                    <i class="bi bi-trash3-fill"></i>
+                    Deletar Usuário
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-lg"></i>
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const infoUsuarioModalElement = document.getElementById('infoUsuarioModal');
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    const applyFiltersButton = document.getElementById('applyFilters');
+    const clearFiltersButton = document.getElementById('clearFilters');
+
+    const modalTitle = infoUsuarioModalElement.querySelector('#infoUsuarioModalLabel');
+    const modalUserNameSpan = infoUsuarioModalElement.querySelector('#modalUserName');
+    const modalUserLoginSpan = infoUsuarioModalElement.querySelector('#modalUserLogin');
+    const modalUserPermissionsDiv = infoUsuarioModalElement.querySelector('#modalUserPermissions');
+    const formAlterarSenhaAdmin = infoUsuarioModalElement.querySelector('#formAlterarSenhaAdmin');
+    const formDeletarUsuario = infoUsuarioModalElement.querySelector('#formDeletarUsuario');
+    const modalUserEmail = infoUsuarioModalElement.querySelector('#modalUserEmail');
+    const formEditarRoles = infoUsuarioModalElement.querySelector('#formEditarRoles');
+    const modalUserStatusDisplay = infoUsuarioModalElement.querySelector('#modalUserStatusDisplay');
+    const formToggleUserStatus = infoUsuarioModalElement.querySelector('#formToggleUserStatus');
+    const btnToggleUserStatus = infoUsuarioModalElement.querySelector('#btnToggleUserStatus');
+
+    function applyUrlFilters() {
+      let url = "{{ url_for('admin.users.list_users') }}?";
+      const queryParams = [];
+      const searchTerm = searchInput.value.trim();
+      if (searchTerm) queryParams.push("search=" + encodeURIComponent(searchTerm));
+      const statusValue = statusFilter.value;
+      if (statusValue) queryParams.push("status=" + statusValue);
+      const sortValue = sortFilter.value;
+      if (sortValue) queryParams.push("sort=" + sortValue);
+      url += queryParams.join('&');
+      window.location.href = url;
+    }
+
+    if (applyFiltersButton) applyFiltersButton.addEventListener('click', applyUrlFilters);
+    if (clearFiltersButton) clearFiltersButton.addEventListener('click', function () {
+      searchInput.value = '';
+      statusFilter.value = '';
+      sortFilter.value = 'date_desc';
+      applyUrlFilters();
+    });
+
+    sortFilter.addEventListener('change', function () { applyUrlFilters(); });
+
+    function reattachModalListeners() {
+      document.querySelectorAll('.user-row').forEach(row => {
+        row.addEventListener('click', function () {
+          const modal = new bootstrap.Modal(document.getElementById('infoUsuarioModal'));
+          const modalElement = document.getElementById('infoUsuarioModal');
+          const event = new Event('show.bs.modal');
+          Object.defineProperty(event, 'relatedTarget', { value: this, enumerable: true });
+          modalElement.dispatchEvent(event);
+          modal.show();
+        });
+      });
+    }
+    reattachModalListeners();
+
+    infoUsuarioModalElement.addEventListener('show.bs.modal', function (event) {
+      const triggeringRow = event.relatedTarget;
+      if (!triggeringRow || !triggeringRow.classList.contains('user-row')) return;
+
+      const userId = triggeringRow.dataset.userId;
+      const userNameData = triggeringRow.dataset.userNome;
+      const userLoginData = triggeringRow.dataset.userUsuario;
+      const userEmailData = triggeringRow.dataset.userEmail;
+      const userIsActiveStr = triggeringRow.dataset.userIsActive;
+      const userIsActive = (userIsActiveStr === 'true');
+
+      const editNameInput = infoUsuarioModalElement.querySelector('#edit_name');
+      const editUsernameInput = infoUsuarioModalElement.querySelector('#edit_username');
+      const editEmailInput = infoUsuarioModalElement.querySelector('#edit_email');
+      const formEditarDadosBasicos = infoUsuarioModalElement.querySelector('#formEditarDadosBasicos');
+
+      if (editNameInput) editNameInput.value = userNameData || '';
+      if (editUsernameInput) editUsernameInput.value = userLoginData || '';
+      if (editEmailInput) editEmailInput.value = userEmailData || '';
+      if (formEditarDadosBasicos) {
+        formEditarDadosBasicos.action = "{{ url_for('admin.users.edit_basic_data', user_id=0) }}".replace('0', userId);
+      }
+
+      if (modalTitle) modalTitle.innerHTML = '<i class="bi bi-person-badge"></i>Detalhes de ' + (userNameData || 'Usuário');
+      if (modalUserNameSpan) modalUserNameSpan.textContent = userNameData || 'Não informado';
+      if (modalUserLoginSpan) modalUserLoginSpan.textContent = userLoginData || 'Não informado';
+      if (modalUserEmail) modalUserEmail.textContent = userEmailData || 'Não cadastrado';
+
+      if (modalUserStatusDisplay && btnToggleUserStatus) {
+        if (userIsActive) {
+          modalUserStatusDisplay.innerHTML = '<span class="permission-badge badge-create"><i class="bi bi-check-circle-fill"></i>Liberado</span>';
+          btnToggleUserStatus.innerHTML = '<i class="bi bi-x-circle-fill"></i>Bloquear Conta';
+          btnToggleUserStatus.className = 'btn btn-warning w-100';
+        } else {
+          modalUserStatusDisplay.innerHTML = '<span class="permission-badge badge-admin"><i class="bi bi-x-circle-fill"></i>Bloqueado</span>';
+          btnToggleUserStatus.innerHTML = '<i class="bi bi-check-circle-fill"></i>Liberar Conta';
+          btnToggleUserStatus.className = 'btn btn-info w-100';
+        }
+      }
+
+      const modalUserRolesDiv = infoUsuarioModalElement.querySelector('#modalUserRoles');
+      if (modalUserRolesDiv) {
+        modalUserRolesDiv.innerHTML = '';
+        const userRolesData = triggeringRow.dataset.userRoles || '';
+        const tempRolesArray = userRolesData ? userRolesData.split(',') : [];
+        if (tempRolesArray.length > 0 && tempRolesArray.some(r => r.trim() !== '')) {
+          tempRolesArray.forEach(function (role) {
+            role = role.trim();
+            if (!role) return;
+            const roleInfo = getRoleInfo(role);
+            const badge = '<span class="role-badge role-' + roleInfo.class + '"><i class="' + roleInfo.icon + '"></i>' + roleInfo.text + '</span>';
+            modalUserRolesDiv.innerHTML += badge;
+          });
+        } else {
+          modalUserRolesDiv.innerHTML = '<span class="role-badge role-none">Nenhuma role definida</span>';
+        }
+      }
+
+      if (modalUserPermissionsDiv) {
+        modalUserPermissionsDiv.innerHTML = '';
+        const userPermissionsData = triggeringRow.dataset.userPermissions || '';
+        const tempPermissionsArray = userPermissionsData ? userPermissionsData.split(',') : [];
+        if (tempPermissionsArray.length > 0 && tempPermissionsArray.some(p => p.trim() !== '')) {
+          tempPermissionsArray.forEach(function (permission) {
+            permission = permission.trim();
+            if (!permission) return;
+            const permissionInfo = getPermissionInfo(permission);
+            const badge = '<span class="permission-badge ' + permissionInfo.class + '"><i class="' + permissionInfo.icon + '"></i>' + permissionInfo.text + '</span>';
+            modalUserPermissionsDiv.innerHTML += badge;
+          });
+        } else {
+          modalUserPermissionsDiv.innerHTML = '<span class="permission-badge badge-none">Nenhuma permissão definida</span>';
+        }
+      }
+
+      const rolesCheckboxesEdit = infoUsuarioModalElement.querySelectorAll('input[name="roles_edit"]');
+      if (rolesCheckboxesEdit) {
+        const rolesDataStr = triggeringRow.dataset.userRoles || '';
+        const rolesArray = rolesDataStr ? rolesDataStr.split(',').map(r => r.trim()) : [];
+        rolesCheckboxesEdit.forEach(checkbox => {
+          checkbox.checked = rolesArray.includes(checkbox.value);
+        });
+      }
+
+      if (userId && String(userId).trim() !== "") {
+        if (formAlterarSenhaAdmin) {
+          const urlAlterarSenha = "{{ url_for('admin.users.change_password', user_id=0) }}".replace('0', userId);
+          formAlterarSenhaAdmin.action = urlAlterarSenha;
+        }
+        if (formDeletarUsuario) {
+          const urlDeletarUsuario = "{{ url_for('admin.users.delete_user', user_id=0) }}".replace('0', userId);
+          formDeletarUsuario.action = urlDeletarUsuario;
+        }
+        if (formEditarRoles) {
+          const urlEditarRoles = "{{ url_for('admin.users.change_roles', user_id=0) }}".replace('0', userId);
+          formEditarRoles.action = urlEditarRoles;
+        }
+        if (formToggleUserStatus) {
+          formToggleUserStatus.action = "{{ url_for('admin.users.toggle_status', user_id=0) }}".replace('0', userId);
+        }
+      } else {
+        if (formAlterarSenhaAdmin) formAlterarSenhaAdmin.action = '#';
+        if (formDeletarUsuario) formDeletarUsuario.action = '#';
+        if (formEditarRoles) formEditarRoles.action = '#';
+        if (formToggleUserStatus) formToggleUserStatus.action = '#';
+      }
+    });
+
+    function getRoleInfo(role) {
+      switch (role) {
+        case 'Enfermeiro': return { class: 'success', icon: 'bi bi-heart-pulse', text: 'Enfermeiro' };
+        case 'Médico': return { class: 'primary', icon: 'bi bi-stethoscope', text: 'Médico' };
+        case 'Faturista': return { class: 'warning', icon: 'bi bi-receipt', text: 'Faturista' };
+        case 'Farmacêutico': return { class: 'teal', icon: 'bi bi-capsule', text: 'Farmacêutico' };
+        case 'Técnico Laboratório': return { class: 'purple', icon: 'bi bi-clipboard2-pulse', text: 'Técnico Laboratório' };
+        case 'Recepcionista': return { class: 'info', icon: 'bi bi-person-check', text: 'Recepcionista' };
+        case 'Gestor RH': return { class: 'secondary', icon: 'bi bi-people', text: 'Gestor RH' };
+        case 'Administrador TI': return { class: 'dark', icon: 'bi bi-laptop', text: 'Administrador TI' };
+        case 'Diretor': return { class: 'danger', icon: 'bi bi-building', text: 'Diretor' };
+        default: return { class: 'none', icon: 'bi bi-person-badge', text: role };
+      }
+    }
+
+    function getPermissionInfo(permission) {
+      switch (permission) {
+        case 'admin-total': return { class: 'badge-admin', icon: 'bi bi-shield-lock', text: 'Admin Total' };
+        case 'manage-users': return { class: 'badge-admin', icon: 'bi bi-people', text: 'Gerenciar Usuários' };
+        case 'view-users': return { class: 'badge-view', icon: 'bi bi-eye', text: 'Ver Usuários' };
+        case 'access-panel': return { class: 'badge-view', icon: 'bi bi-speedometer', text: 'Acessar Painel' };
+        case 'change-password': return { class: 'badge-create', icon: 'bi bi-key', text: 'Trocar Senha' };
+        default: return { class: 'badge-none', icon: 'bi bi-shield', text: permission };
+      }
+    }
+  });
+</script>
+{% endblock %}

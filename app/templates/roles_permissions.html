@@ -1,0 +1,349 @@
+{% extends "navbar.html" %}
+{% block title %} Gerenciar Permissões por Role {% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  {% include 'partials/_flash_messages.html' %}
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <h2 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Permissões por Role</h2>
+      <span class="badge text-bg-secondary" title="Quantidade de roles carregadas">{{ roles|length if roles else 0 }} roles</span>
+      <span class="badge text-bg-info" title="Quantidade de permissões no catálogo">{{ catalog|length if catalog else 0 }} permissões</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('main.panel') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-6">
+          <label for="roleSearch" class="form-label">Pesquisar roles</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input id="roleSearch" type="text" class="form-control" placeholder="Filtrar por nome ou setor (ex.: Coordenador, TI)">
+          </div>
+          <div class="form-text">A pesquisa é instantânea e não recarrega a página.</div>
+        </div>
+        <div class="col-lg-6"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+      <i class="bi bi-plus-circle me-1"></i> Criar nova Role
+    </button>
+  </div>
+  <div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#catalogModal">
+      <i class="bi bi-list-check me-1"></i> Gerenciar catálogo de permissões
+    </button>
+  </div>
+
+  <!-- Modal: Criar nova Role -->
+  <div class="modal fade" id="createRoleModal" tabindex="-1" aria-labelledby="createRoleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createRoleModalLabel"><i class="bi bi-plus-circle me-2"></i>Criar nova Role</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.roles.create_role') }}">
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Nome da Role</label>
+                <input type="text" class="form-control" name="role_name" placeholder="ex.: Coordenador" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Setor</label>
+                <input type="text" class="form-control" name="role_sector" placeholder="ex.: Coordenação">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Descrição</label>
+                <input type="text" class="form-control" name="role_description" placeholder="descrição opcional">
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="form-label">Permissões iniciais (opcional)</label>
+              <div class="row">
+                {% for perm in catalog %}
+                <div class="col-12 col-sm-6 col-md-4 mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="role_permissions" value="{{ perm }}" id="modal_new_perm_{{ loop.index }}">
+                    <label class="form-check-label" for="modal_new_perm_{{ loop.index }}">{{ perm }}</label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="form-text">Para criar novas permissões, utilize o catálogo acima.</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check2-circle me-1"></i>Criar Role
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Catálogo de Permissões -->
+  <div class="modal fade" id="catalogModal" tabindex="-1" aria-labelledby="catalogModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="catalogModalLabel"><i class="bi bi-list-check me-2"></i>Catálogo de permissões</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <form class="row g-2 align-items-end" method="POST" action="{{ url_for('admin.roles.add_permission_to_catalog') }}">
+            <div class="col-md-8">
+              <label class="form-label">Adicionar nova permissão</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-plus-circle"></i></span>
+                <input type="text" class="form-control" name="permission_name" placeholder="ex.: view-reports" pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$" title="Use letras minúsculas, números e hífen (kebab-case)" required>
+              </div>
+              <div class="form-text">A nova permissão entra no catálogo e passa a aparecer nas listas de roles.</div>
+            </div>
+            <div class="col-md-4 d-grid">
+              <button type="submit" class="btn btn-outline-success"><i class="bi bi-check2 me-1"></i>Adicionar</button>
+            </div>
+          </form>
+          {% if catalog %}
+            <hr>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
+              {% for perm in catalog %}
+              <div class="col">
+                <div class="d-flex justify-content-between align-items-center border rounded p-2">
+                  <code class="small">{{ perm }}</code>
+                  <form method="POST" action="{{ url_for('admin.roles.delete_permission_from_catalog', name=perm) }}" data-perm-name="{{ perm }}" onsubmit="return confirmCatalogDeletion(this);">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir do catálogo e remover das roles"><i class="bi bi-trash3"></i></button>
+                  </form>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info mt-3 mb-0">Nenhuma permissão no catálogo ainda.</div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if roles %}
+    <div id="rolesGrid" class="row g-4">
+      {% for role in roles %}
+      <div class="col-12 col-md-6 role-card" data-role-name="{{ role.name|lower }}" data-role-sector="{{ (role.sector or '')|lower }}">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h5 class="card-title mb-1">
+                  <i class="bi bi-person-badge me-2"></i>{{ role.name }}
+                </h5>
+                {% if role.description %}
+                  <small class="text-muted">{{ role.description }}</small>
+                {% endif %}
+              </div>
+              {% if role.sector %}
+                <span class="badge text-bg-secondary">{{ role.sector }}</span>
+              {% endif %}
+            </div>
+
+            {% set is_admin_role = role.name and role.name|lower in ('administrador','admin') %}
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <label class="form-label mb-0">Permissões</label>
+              <span class="badge rounded-pill text-bg-light border" title="Quantidade selecionada">
+                <i class="bi bi-check2-square me-1"></i><span class="selected-count" data-role-id="{{ role.id }}">{{ (role.permissions|length) if role.permissions else 0 }}</span>
+              </span>
+              <div class="ms-auto">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#rolePermsModal_{{ role.id }}">
+                  <i class="bi bi-sliders"></i> Gerenciar permissões
+                </button>
+              </div>
+            </div>
+            {% if is_admin_role %}
+              <div class="alert alert-warning py-2 my-2">Role padrão do sistema: somente <code>admin-total</code>. Edição desativada.</div>
+            {% endif %}
+
+            <!-- Modal de permissões por role -->
+            <div class="modal fade" id="rolePermsModal_{{ role.id }}" tabindex="-1" aria-labelledby="rolePermsModalLabel_{{ role.id }}" aria-hidden="true">
+              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="rolePermsModalLabel_{{ role.id }}"><i class="bi bi-person-badge me-2"></i>Permissões de {{ role.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                  </div>
+                  <form method="POST" action="{{ url_for('admin.roles.update_role_permissions', role_id=role.id) }}" class="role-perms-form" data-role-id="{{ role.id }}">
+                    <div class="modal-body">
+                      {% if is_admin_role %}
+                        <div class="alert alert-warning">Role padrão do sistema: somente <code>admin-total</code>. Edição desativada.</div>
+                      {% endif %}
+                      <div class="row g-2 align-items-end mb-2">
+                        <div class="col-sm-8">
+                          <label class="form-label">Filtrar permissões</label>
+                          <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-funnel"></i></span>
+                            <input type="text" class="form-control perm-filter" data-role-id="{{ role.id }}" placeholder="Ex.: users, reports">
+                          </div>
+                        </div>
+                        <div class="col-sm-4 d-flex gap-2 justify-content-sm-end">
+                          {% if not is_admin_role %}
+                          <button type="button" class="btn btn-outline-primary select-all-btn" data-role-id="{{ role.id }}">
+                            <i class="bi bi-check2-all"></i> Selecionar todas
+                          </button>
+                          <button type="button" class="btn btn-outline-secondary clear-all-btn" data-role-id="{{ role.id }}">
+                            <i class="bi bi-x-circle"></i> Limpar
+                          </button>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="row role-permissions-list" data-role-id="{{ role.id }}">
+                        {% for perm in catalog %}
+                        <div class="col-12 col-sm-6 mb-2 perm-item" data-perm="{{ perm|lower }}">
+                          <div class="form-check">
+                            <input class="form-check-input perm-checkbox" type="checkbox" name="permissions" value="{{ perm }}" id="perm_modal_{{ role.id }}_{{ loop.index }}" {% if role.permissions and perm in role.permissions %}checked{% endif %} {% if is_admin_role %}disabled{% endif %}>
+                            <label class="form-check-label" for="perm_modal_{{ role.id }}_{{ loop.index }}">{{ perm }}</label>
+                          </div>
+                        </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                      {% if not is_admin_role %}
+                        <button type="submit" class="btn btn-primary">
+                          <i class="bi bi-check-circle-fill me-1"></i>Salvar mudanças
+                        </button>
+                      {% endif %}
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <form class="mt-3" method="POST" action="{{ url_for('admin.roles.delete_role', role_id=role.id) }}" data-role-name="{{ role.name }}" data-protected="{{ 'true' if is_admin_role else 'false' }}" onsubmit="return confirmRoleDeletion(this);">
+              <button type="submit" class="btn btn-outline-danger w-100" {% if is_admin_role %}disabled title="Role protegida"{% endif %}>
+                <i class="bi bi-trash3 me-1"></i>Excluir Role
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      Nenhuma role encontrada. Crie roles primeiro.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  (function() {
+    // Confirmação de exclusão de role com proteção para Administrador
+    window.confirmRoleDeletion = function(form) {
+      const isProtected = (form.dataset.protected || 'false') === 'true';
+      if (isProtected) return false;
+      const roleName = form.dataset.roleName || 'esta role';
+      return confirm(`Tem certeza que deseja excluir a role ${roleName}? Usuários perderão essa role.`);
+    };
+
+    // Confirmação de exclusão de permissão do catálogo
+    window.confirmCatalogDeletion = function(form) {
+      const perm = form.dataset.permName || 'esta permissão';
+      return confirm(`Excluir a permissão "${perm}" do catálogo? Ela será removida de todas as roles.`);
+    };
+
+    // Filtro global de roles por nome/setor
+    const roleSearch = document.getElementById('roleSearch');
+    const grid = document.getElementById('rolesGrid');
+    if (roleSearch && grid) {
+      roleSearch.addEventListener('input', function () {
+        const q = (this.value || '').toLowerCase().trim();
+        grid.querySelectorAll('.role-card').forEach(card => {
+          const name = (card.dataset.roleName || '').toLowerCase();
+          const sector = (card.dataset.roleSector || '').toLowerCase();
+          const show = !q || name.includes(q) || sector.includes(q);
+          card.style.display = show ? '' : 'none';
+        });
+      });
+    }
+
+    // Expandir/Recolher todas as listas
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    function setAll(show) {
+      document.querySelectorAll('.role-permissions-list').forEach(list => {
+        list.style.display = show ? '' : 'none';
+      });
+    }
+    if (expandAllBtn) expandAllBtn.addEventListener('click', () => setAll(true));
+    if (collapseAllBtn) collapseAllBtn.addEventListener('click', () => setAll(false));
+
+    // Utilidades por card: filtro local, selecionar todas/limpar e contador
+    function updateCount(roleId) {
+      const form = document.querySelector(`form.role-perms-form[data-role-id="${roleId}"]`);
+      if (!form) return;
+      const count = form.querySelectorAll('.perm-checkbox:checked').length;
+      const badge = form.querySelector(`.selected-count[data-role-id="${roleId}"]`);
+      if (badge) badge.textContent = count;
+    }
+
+    document.querySelectorAll('.perm-filter').forEach(input => {
+      input.addEventListener('input', function () {
+        const q = (this.value || '').toLowerCase().trim();
+        const roleId = this.getAttribute('data-role-id');
+        const list = document.querySelector(`.role-permissions-list[data-role-id="${roleId}"]`);
+        if (!list) return;
+        list.querySelectorAll('.perm-item').forEach(item => {
+          const perm = (item.getAttribute('data-perm') || '').toLowerCase();
+          item.style.display = (!q || perm.includes(q)) ? '' : 'none';
+        });
+      });
+    });
+
+    document.querySelectorAll('.select-all-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const roleId = this.getAttribute('data-role-id');
+        const form = document.querySelector(`form.role-perms-form[data-role-id="${roleId}"]`);
+        if (!form) return;
+        form.querySelectorAll('.perm-checkbox').forEach(chk => { chk.checked = true; });
+        updateCount(roleId);
+      });
+    });
+
+    document.querySelectorAll('.clear-all-btn').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const roleId = this.getAttribute('data-role-id');
+        const form = document.querySelector(`form.role-perms-form[data-role-id="${roleId}"]`);
+        if (!form) return;
+        form.querySelectorAll('.perm-checkbox').forEach(chk => { chk.checked = false; });
+        updateCount(roleId);
+      });
+    });
+
+    document.querySelectorAll('.role-perms-form').forEach(form => {
+      const roleId = form.getAttribute('data-role-id');
+      form.querySelectorAll('.perm-checkbox').forEach(chk => {
+        chk.addEventListener('change', () => updateCount(roleId));
+      });
+    });
+
+    // Catálogo central controla criação/remoção de permissões; inputs por card foram removidos
+  })();
+</script>
+{% endblock %}
