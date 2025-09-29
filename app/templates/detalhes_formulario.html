@@ -1,0 +1,444 @@
+{% extends "navbar.html" %}
+
+{% block title %}
+Detalhes do Exame - {{ formulario.nome_paciente if formulario else 'Não Encontrado' }}
+{% endblock %}
+
+{% block content %}
+<div class="modern-container">
+    {% include 'partials/_flash_messages.html' %}
+    {% if formulario %}
+    <div class="container-fluid px-3 px-lg-4">
+        <div class="modern-header">
+            <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                <h1 class="mb-0 d-flex align-items-center">
+                    <i class="bi bi-file-earmark-medical"></i>
+                    Solicitação #{{ formulario.id }}
+                </h1>
+                {% set _status_label = formulario.status | format_status %}
+                {% set _status_icon = 'bi-hourglass-split' %}
+                {% if formulario.status == 'EM_ANALISE' %}
+                {% set _status_icon = 'bi-search' %}
+                {% elif formulario.status == 'AGENDADO' %}
+                {% set _status_icon = 'bi-calendar-check' %}
+                {% elif formulario.status == 'CONCLUIDO' %}
+                {% set _status_icon = 'bi-check2-circle' %}
+                {% elif formulario.status == 'CANCELADO' %}
+                {% set _status_icon = 'bi-x-circle' %}
+                {% endif %}
+                <span class="modern-wait-chip active">
+                    <i class="bi {{ _status_icon }}"></i>
+                    {{ _status_label }}
+                </span>
+            </div>
+
+            <div class="mt-3">
+                <a href="{{ url_for('sisreg.formularios') }}" class="btn modern-btn-secondary me-2">
+                    <i class="bi bi-arrow-left me-2"></i>Voltar
+                </a>
+                <button class="btn btn-info" onclick="printRecord()">
+                    <i class="bi bi-printer me-2"></i>Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12 col-lg-8 col-xl-9">
+                <div class="modern-card card shadow-lg border-0">
+                    <div class="card-body">
+                        {% set _raw_obs = formulario.observacao or '' %}
+                        {% set _lines_obs = _raw_obs.replace(' [', '\n[').split('\n') %}
+                        {% set ns = namespace(initial_obs=None) %}
+                        {% for ln in _lines_obs %}
+                            {% set tl = ln.strip() %}
+                            {% if ns.initial_obs is none and tl and (tl[0] != '[') %}
+                                {% set ns.initial_obs = tl %}
+                            {% endif %}
+                        {% endfor %}
+                        {% set initial_obs = ns.initial_obs %}
+                        <div class="modern-details-section">
+                            <h5>
+                                <i class="bi bi-person-circle"></i>Dados do Paciente
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 modern-detail-item">
+                                    <label class="form-label">Nome do Paciente</label>
+                                    <p class="fw-bold">{{ formulario.nome_paciente or 'N/A' }}</p>
+                                </div>
+                                <div class="col-md-3 modern-detail-item">
+                                    <label class="form-label">Data de Nascimento</label>
+                                    <p>{{ formulario.nascimento | format_date_short if formulario.nascimento else 'N/A' }}
+                                        </p>
+                                </div>
+                                <div class="col-md-3 modern-detail-item">
+                                    <label class="form-label">CPF</label>
+                                    <p class="text-monospace">{{ formulario.cpf or 'N/A' }}</p>
+                                </div>
+                                <div class="col-md-6 modern-detail-item">
+                                    <label class="form-label">Nome da Mãe</label>
+                                    <p>{{ formulario.nome_mae or '-' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modern-details-section">
+                            <h5>
+                                <i class="bi bi-clipboard-data"></i>Dados da Solicitação
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Unidade Solicitante</label>
+                                    <p class="fw-bold">{{ formulario.unidade_saude or '-' }}</p>
+                                </div>
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Médico Solicitante</label>
+                                    <p>{{ formulario.medico_solicitante or '-' }}</p>
+                                </div>
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Especialidade/Exame</label>
+                                    <p>{{ formulario.especialidade or '-' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if initial_obs %}
+                        <div class="modern-details-section">
+                            <h5>
+                                <i class="bi bi-pencil-square"></i>Observação Inicial
+                            </h5>
+                            <div class="modern-detail-item">
+                                <p class="mb-0">{{ initial_obs }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if formulario.data_atendimento %}
+                        <div class="modern-details-section">
+                            <h5>
+                                <i class="bi bi-calendar-check"></i>Dados do Agendamento
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Agendado por</label>
+                                    <p class="fw-bold">{{ formulario.autorizador.name if formulario.autorizador else 'Não identificado' }}</p>
+                                </div>
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Data do Atendimento</label>
+                                    <p>{{ formulario.data_atendimento | format_date_short }}</p>
+                                </div>
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Hora do Atendimento</label>
+                                    <p>{{ formulario.hora_agendamento or '-' }}</p>
+                                </div>
+                                <div class="col-md-6 modern-detail-item">
+                                    <label class="form-label">Local de Destino</label>
+                                    <p>{{ formulario.local_destino or '-' }}</p>
+                                </div>
+                                <div class="col-md-6 modern-detail-item">
+                                    <label class="form-label">Médico Responsável</label>
+                                    <p>{{ formulario.medico_atendimento or 'Ainda não definido' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if formulario.justificativa_negativa %}
+                        <div class="modern-details-section">
+                            <h5>
+                                <i class="bi bi-exclamation-triangle"></i>Regulação
+                            </h5>
+                            <div class="alert alert-danger mb-0">
+                                <strong>Negado pela Regulação:</strong><br>
+                                <span>{{ formulario.justificativa_negativa }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if formulario.compareceu is not none or formulario.procedimento_realizado is not none or
+                        formulario.resultado_procedimento %}
+                        <div class="modern-details-section">
+                            <h5>
+                                <i class="bi bi-clipboard-check"></i>Resultado Ambulatorial
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Compareceu</label>
+                                    <p>
+                                        {% if formulario.compareceu %}
+                                        <span class="modern-badge badge bg-success">Sim</span>
+                                        {% elif formulario.compareceu is not none %}
+                                        <span class="modern-badge badge bg-secondary">Não</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4 modern-detail-item">
+                                    <label class="form-label">Procedimento Realizado</label>
+                                    <p>
+                                        {% if formulario.procedimento_realizado %}
+                                        <span class="modern-badge badge bg-success">Sim</span>
+                                        {% elif formulario.procedimento_realizado is not none %}
+                                        <span class="modern-badge badge bg-secondary">Não</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-12 modern-detail-item">
+                                    <label class="form-label">Observações/Resultado</label>
+                                    <p>{{ formulario.resultado_procedimento or '—' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+
+                    </div>
+                </div>
+
+                {% if current_user.is_authenticated and 'ADMIN' in current_user.profile %}
+                <div class="card shadow-sm border-danger mt-4">
+                    <div class="card-header bg-danger-subtle text-danger-emphasis py-3">
+                        <h6 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de Perigo</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <p>Esta ação é irreversível e irá apagar permanentemente a solicitação.</p>
+                        <form method="POST"
+                            action="{{ url_for('sisreg.deletar_formulario', form_id=formulario.id) }}"
+                            onsubmit="return confirm('TEM CERTEZA ABSOLUTA que deseja deletar esta solicitação?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash3-fill me-2"></i>Deletar Solicitação
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-12 col-lg-4 col-xl-3">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-light py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-diagram-3"></i>Status e Controle</h6>
+                    </div>
+                    <div class="card-body">
+                        {% set _badge = 'warning' %}
+                        {% if formulario.status == 'CONCLUIDO' %}
+                        {% set _badge = 'success' %}
+                        {% elif formulario.status == 'AGENDADO' %}
+                        {% set _badge = 'primary' %}
+                        {% elif formulario.status == 'CANCELADO' %}
+                        {% set _badge = 'danger' %}
+                        {% elif formulario.status == 'EM_ANALISE' %}
+                        {% set _badge = 'info' %}
+                        {% endif %}
+
+                        {% set _raw = formulario.observacao or '' %}
+                        {% set _lines = _raw.replace(' [', '\n[').split('\n') %}
+                        {% set rev_text = None %}{% set rev_stamp = None %}
+                        {% set resp_text = None %}{% set resp_stamp = None %}
+                        {% set neg_text = None %}{% set neg_stamp = None %}
+                        {% set last_stamp = None %}
+                        {% for line in _lines|reverse %}
+                        {% set l = line.strip() %}
+                        {% if l and l[0] == '[' %}
+                        {% set parts = l.split(']') %}
+                        {% set header = parts[0][1:] if parts|length > 0 else '' %}
+                        {% set message = (parts[1] if parts|length > 1 else '') | trim %}
+                        {% set _hdr = header | upper %}
+                        {# captura um possível timestamp deste evento para fallback #}
+                        {% set stamp_any = None %}
+                        {% if message and message.rfind(' - ') != -1 %}
+                        {% set stamp_any = message[message.rfind(' - ') + 3:] %}
+                        {% endif %}
+                        {% if last_stamp is none and stamp_any %}{% set last_stamp = stamp_any %}{% endif %}
+
+                        {% if rev_text is none and 'SOLICITAR REVISÃO' in header %}
+                        {% if message and message.rfind(' - ') != -1 %}
+                        {% set rev_text = message[:message.rfind(' - ')] %}
+                        {% set rev_stamp = message[message.rfind(' - ') + 3:] %}
+                        {% if last_stamp is none %}{% set last_stamp = rev_stamp %}{% endif %}
+                        {% else %}
+                        {% set rev_text = message %}
+                        {% set rev_stamp = None %}
+                        {% endif %}
+                        {% elif resp_text is none and 'RESPOSTA REVISÃO' in header %}
+                        {% if message and message.rfind(' - ') != -1 %}
+                        {% set resp_text = message[:message.rfind(' - ')] %}
+                        {% set resp_stamp = message[message.rfind(' - ') + 3:] %}
+                        {% if last_stamp is none %}{% set last_stamp = resp_stamp %}{% endif %}
+                        {% else %}
+                        {% set resp_text = message %}
+                        {% set resp_stamp = None %}
+                        {% endif %}
+                        {% elif neg_text is none and ('NEGAR' in _hdr or 'NEGADO' in _hdr or 'CANCELAR' in _hdr or
+                        'CANCELADO' in _hdr) %}
+                        {% if message and message.rfind(' - ') != -1 %}
+                        {% set neg_text = message[:message.rfind(' - ')] %}
+                        {% set neg_stamp = message[message.rfind(' - ') + 3:] %}
+                        {% if last_stamp is none %}{% set last_stamp = neg_stamp %}{% endif %}
+                        {% else %}
+                        {% set neg_text = message %}
+                        {% set neg_stamp = None %}
+                        {% endif %}
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+
+                        {% set status_stamp = None %}
+                        {% if formulario.status == 'AGENDADO' %}
+                        {% set stamp_date = formulario.data_atendimento | format_date_short if
+                        formulario.data_atendimento else None %}
+                        {% set stamp_time = formulario.hora_agendamento or '' %}
+                        {% if stamp_date %}{% set status_stamp = stamp_date ~ (' ' ~ stamp_time if stamp_time else '')
+                        %}{% endif %}
+                        {% elif formulario.status == 'PENDENTE' %}
+                        {% set status_stamp = rev_stamp %}
+                        {% elif formulario.status == 'EM_ANALISE' %}
+                        {% set status_stamp = resp_stamp %}
+                        {% elif formulario.status == 'CANCELADO' %}
+                        {% set status_stamp = neg_stamp or last_stamp %}
+                        {% endif %}
+
+                        <div class="mb-4">
+                            <ul class="list-group list-group-flush small">
+                                <li class="list-group-item px-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-badge text-secondary"></i>
+                                    <span>Registrado por:</span>
+                                    <span class="text-muted">{{ formulario.funcionario.nome if formulario.funcionario
+                                        else '-' }}</span>
+                                </li>
+                                <li class="list-group-item px-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-activity text-secondary"></i>
+                                    <span>Status:</span>
+                                    <span class="ms-1"><span class="badge bg-{{ _badge }}">{{ formulario.status |
+                                            format_status }}</span></span>
+                                </li>
+                                <li class="list-group-item"></li>
+                            </ul>
+                        </div>
+
+                        {# Removido o bloco "Etapas"; manteremos somente a linha do tempo em "Eventos" #}
+
+                        <div>
+                            <h6 class="text-muted mb-2">Eventos</h6>
+                            <div class="event-feed">
+                                <div class="event-card event-initial small">
+                                    <div class="event-head">
+                                        <span class="badge bg-success"><i
+                                                class="bi bi-check-circle me-1"></i>Criado</span>
+                                        <span class="event-meta small"> <i class="bi bi-clock "></i>{{formulario.data_registro | format_date_time if formulario.data_registro else '-' }}
+                                            {% if formulario.funcionario and formulario.funcionario.name %} | por {{ formulario.funcionario.name }}{% endif %}</span>
+                                    </div>
+                                </div>
+
+                                {% if _raw %}
+                                {% for line in _lines %}
+                                {% set _line = line.strip() %}
+                                {% if _line %}
+                                {% if _line[0] == '[' %}
+                                {% set parts = _line.split(']') %}
+                                {% set header = parts[0][1:] if parts|length > 0 else '' %}
+                                {% set uhdr = header | upper %}
+                                {% set message = (parts[1] if parts|length > 1 else '') | trim %}
+                                                                {# Extrai corpo e timestamp de forma resiliente (com ou sem espaço antes do hífen) #}
+                                                                {% set stamp = None %}
+                                                                {% set base = message %}
+                                                                {% if message %}
+                                                                    {% set _idx = message.rfind(' - ') %}
+                                                                    {% if _idx != -1 %}
+                                                                        {% set base = message[:_idx] %}
+                                                                        {% set stamp = message[_idx + 3:] %}
+                                                                    {% elif message.startswith('- ') %}
+                                                                        {% set base = '' %}
+                                                                        {% set stamp = message[2:] %}
+                                                                    {% endif %}
+                                                                {% endif %}
+                                <div class="event-card small">
+                                    <div class="event-head">
+                                        {% if 'SOLICITAR REVISÃO' in header %}
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-arrow-counterclockwise me-1"></i>Revisão Solicitada</span>
+                                        {% elif 'RESPOSTA REVISÃO' in header %}
+                                        <span class="badge bg-primary"><i class="bi bi-reply me-1"></i>Resposta UBS</span>
+                                        {% elif 'NEGAR' in header or 'NEGADO' in header %}
+                                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Negado</span>
+                                        {% elif 'REAGENDAR' in header %}
+                                        <span class="badge bg-info text-dark"><i class="bi bi-arrow-repeat me-1"></i>Reagendado</span>
+                                        {% elif 'AUTORIZAR' in header or 'AUTORIZADO' in header %}
+                                        <span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>Autorizado</span>
+                                        {% elif 'AMBULAT' in uhdr and 'PRESEN' in uhdr %}
+                                        <span class="badge bg-success"><i class="bi bi-person-check me-1"></i>Ambulatório - Presença</span>
+                                        {% elif 'AMBULAT' in uhdr and ('FALTA' in uhdr or 'NAO COMPARECEU' in uhdr or 'NÃO COMPARECEU' in uhdr) %}
+                                        <span class="badge bg-danger"><i class="bi bi-person-x me-1"></i>Ambulatório - Falta</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary"><i class="bi bi-chat-left-text me-1"></i>{{ header }}</span>
+                                        {% endif %}
+                                        {% if stamp %}
+                                        <span class="event-meta"><i class="bi bi-clock"></i>{{ stamp }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if base and base|trim %}
+                                    <div class="event-body">{{ base }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% endif %}
+                                {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="container-fluid py-4 px-3 px-lg-4">
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Formulário Não Encontrado!
+            </h4>
+            <p>O formulário que você está tentando acessar não existe ou você não tem permissão para visualizá-lo.</p>
+            <hr>
+            <p class="mb-0">Por favor, verifique o ID do formulário ou <a href="{{ url_for('sisreg.formularios') }}"
+                    class="alert-link">volte para a lista de formulários</a>.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function printRecord() {
+        const printWindow = window.open('', '_blank');
+        const cardContent = document.querySelector('.modern-card').innerHTML;
+        const printHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Solicitação #{{ formulario.id if formulario else '' }}</title>
+                <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}" />
+            </head>
+            <body>
+                <h1>Solicitação #{{ formulario.id if formulario else '' }}</h1>
+                <p><strong>Data de Impressão:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                <hr>
+                ${cardContent}
+            </body>
+            </html>
+        `;
+        printWindow.document.write(printHTML);
+        printWindow.document.close();
+        printWindow.onload = function () {
+            printWindow.print();
+            printWindow.close();
+        };
+    }
+</script>
+{% endblock %}

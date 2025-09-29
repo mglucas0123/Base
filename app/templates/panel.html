@@ -1,25 +1,90 @@
 {% extends "navbar.html" %}
-{% block title %} Painel Principal {% endblock %}
+{% block title %}Painel Principal{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-lg border-0 rounded-4">
-                <div class="card-body text-center p-5">
-                    <div class="mb-4">
-                        <i class="bi bi-person-circle text-primary" style="font-size: 4rem;"></i>
+<div class="container-fluid mt-4">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 welcome-card">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="card-title mb-1">Bem-vindo(a) de volta, <span class="text-primary">{{ current_user.name }}</span>!</h3>
+                            <p class="text-muted mb-2" id="current-datetime">Carregando data e hora...</p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            {% if current_user.is_authenticated %}
+                                {% if 'CRIAR_RELATORIOS' in current_user.profile %}
+                                    <a href="{{ url_for('sisreg.novo_formulario') }}" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-plus-circle-fill me-2"></i>Nova Solicitação
+                                    </a>
+                                {% elif 'VER_RELATORIOS' in current_user.profile or 'ADMIN' in current_user.profile %}
+                                    <a href="{{ url_for('sisreg.formularios') }}" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-folder-check me-2"></i>Analisar Exames
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </div>
-                    <h2 class="fw-bold mb-3">Bem-vindo à Base</h2>
-                    <h4 class="mb-4 text-muted">{{ current_user.name }}</h4>
-                    <p class="lead">Este é o painel principal da base. Use o menu acima para navegar pelas funcionalidades disponíveis.</p>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="row gy-4">
+        {% if current_user.is_authenticated and (('VER_RELATORIOS' in current_user.profile) or ('CRIAR_RELATORIOS' in current_user.profile) or ('ALTERAR_STATUS' in current_user.profile) or ('ADMIN' in current_user.profile)) %}
+        <div class="col-lg-4 col-md-6">
+            <div class="feature-card h-100 position-relative overflow-hidden card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="feature-header mb-3">
+                        <div class="feature-icon bg-primary bg-opacity-10 rounded-3 p-3 mb-3 d-inline-flex">
+                            <i class="bi bi-clipboard2-pulse text-primary fs-3"></i>
+                        </div>
+                        <h5 class="fw-bold mb-2">Fluxo SISREG</h5>
+                        <p class="text-muted mb-3">Regulação, Agenda e Ambulatório num só lugar.</p>
+                    </div>
+                    <div class="feature-actions">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('sisreg.meus_trabalhos') }}" class="btn btn-primary w-100">
+                                <i class="bi bi-journal-plus me-2"></i>
+                                Meus Trabalhos
+                            </a>
+                            <a href="{{ url_for('sisreg.formularios') }}" class="btn btn-outline-primary d-flex align-items-center justify-content-center">
+                                <i class="bi bi-clipboard-data me-2"></i>
+                                Ver Registros
+                            </a>
+                            {% if 'CRIAR_RELATORIOS' in current_user.profile or 'ADMIN' in current_user.profile %}
+                            <a href="{{ url_for('sisreg.sector_ubs_lista') }}" class="btn btn-success d-flex align-items-center justify-content-center">
+                                <i class="bi bi-hospital me-2"></i>
+                                Acessar UBS
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="feature-decoration position-absolute top-0 end-0 opacity-10">
+                    <i class="bi bi-clipboard2-pulse" style="font-size: 8rem;"></i>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div> 
 </div>
 {% endblock %}
 
+
 {% block scripts %}
 {{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const datetimeEl = document.getElementById('current-datetime');
+    if (datetimeEl) {
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        let formattedDate = now.toLocaleDateString('pt-BR', options);
+        datetimeEl.textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+    }
+});
+</script>
 {% endblock %}

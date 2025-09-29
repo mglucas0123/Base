@@ -5,11 +5,7 @@
 .roles-permissions-page {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     min-height: 100vh;
-    padding: 2rem 0;
-
-    .container {
-        max-width: 1400px;
-    }
+    padding: 2rem;
 }
 
 // ==========================================
@@ -105,7 +101,7 @@
             gap: 1rem;
             align-items: center;
 
-            .back-btn {
+            .back-btn, .action-btn {
                 background: rgba(255, 255, 255, 0.15);
                 border: 2px solid rgba(255, 255, 255, 0.25);
                 color: white;
@@ -125,6 +121,23 @@
                     transform: translateY(-2px);
                     color: white;
                     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+                }
+            }
+
+            .action-btn {
+                gap: 0.75rem;
+                cursor: pointer;
+
+                &.create-role-btn:hover {
+                    border-color: #34d399;
+                }
+
+                &.catalog-btn:hover {
+                    border-color: #7c3aed;
+                }
+
+                i {
+                    font-size: 1.2rem;
                 }
             }
         }
@@ -201,65 +214,6 @@
             color: #718096;
             font-size: 0.875rem;
             margin-top: 0.5rem;
-        }
-    }
-}
-
-// ==========================================
-// ACTION BUTTONS SECTION
-// ==========================================
-.roles-actions {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-
-    .action-btn {
-        padding: 1rem 2rem;
-        border-radius: 16px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        transition: all 0.3s ease;
-        border: none;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-        &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        &.create-role-btn {
-            background: linear-gradient(135deg, #10b981, #34d399);
-            color: white;
-
-            &:hover {
-                box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-            }
-        }
-
-        &.catalog-btn {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
-
-            &:hover {
-                box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
-            }
-        }
-
-        i {
-            font-size: 1.2rem;
-        }
-    }
-
-    @media (max-width: 768px) {
-        justify-content: center;
-
-        .action-btn {
-            flex: 1;
-            min-width: 250px;
-            justify-content: center;
         }
     }
 }

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}SISPLA{% endblock %}</title>
+    <title>{% block title %}SISREG{% endblock %}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -24,8 +24,8 @@
                         <div class="heartbeat-effect"></div>
                     </div>
                     <div class="brand-text">
-                        <span class="brand-title">Base</span>
-                        <span class="brand-subtitle">Base para criação de Sistemas</span>
+                        <span class="brand-title">SISREG</span>
+                        <span class="brand-subtitle">Sistema de Regulação</span>
                     </div>
                 </div>
             </a>
@@ -48,6 +48,25 @@
                                 <i class="bi bi-key-fill me-2"></i>Trocar Senha
                             </button>
                         </li>
+                        {% if 'VER_RELATORIOS' in current_user.profile or 'ADMIN' in current_user.profile %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">SISREG</h6></li>
+                        <li>
+                            <a class="dropdown-item dropdown-item-custom" href="{{ url_for('sisreg.formularios') }}">
+                                <i class="bi bi-file-earmark-medical me-2"></i>Ver Exames
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item dropdown-item-custom" href="{{ url_for('sisreg.setor_regulacao_lista') }}">
+                                <i class="bi bi-diagram-3 me-2"></i>Regulação
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item dropdown-item-custom" href="{{ url_for('sisreg.setor_ambulatorio_lista') }}">
+                                <i class="bi bi-hospital me-2"></i>Ambulatório
+                            </a>
+                        </li>
+                        {% endif %}
                         {% if current_user.has_permission('admin-total') %}
                         <li>
                             <hr class="dropdown-divider">
@@ -216,39 +235,7 @@
     <main class="flex-shrink-0">
         {% block content %}{% endblock %}
     </main>
-    <footer class="footer-premium no-print mt-auto">
-        <div class="container">
-            <div class="d-flex flex-wrap align-items-center justify-content-between">
-
-                <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                    <a href="{{ url_for('main.panel') }}" class="footer-brand">
-                        <i class="bi bi-hospital"> Base</i>
-                    </a>
-                    <span class="footer-credit-text d-block mt-2">Desenvolvido por <strong>Lucas M.
-                            Araujo</strong></span>
-                </div>
-
-                <div class="col-md-6 text-center text-md-end">
-                    <a href="https://www.linkedin.com/in/mglucas0123/" target="_blank" rel="noopener noreferrer"
-                        class="footer-social-link" title="LinkedIn">
-                        <i class="bi bi-linkedin"></i>
-                    </a>
-                    <a href="https://github.com/mglucas0123" target="_blank" rel="noopener noreferrer"
-                        class="footer-social-link" title="GitHub">
-                        <i class="bi bi-github"></i>
-                    </a>
-                    <a href="https://wa.me/5534996854244" target="_blank" rel="noopener noreferrer"
-                        class="footer-social-link" title="WhatsApp">
-                        <i class="bi bi-whatsapp"></i>
-                    </a>
-                    <a href="mailto:lucasiturama2013@gmail.com" class="footer-social-link" title="Email">
-                        <i class="bi bi-envelope-fill"></i>
-                    </a>
-                </div>
-
-            </div>
-        </div>
-    </footer>
+    <footer class="footer-premium no-print mt-auto"></footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 

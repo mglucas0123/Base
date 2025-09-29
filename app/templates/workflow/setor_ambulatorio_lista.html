@@ -1,0 +1,319 @@
+{% extends "navbar.html" %}
+{% block title %}Ambulatório - Agendados{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+{% endblock %}
+{% block content %}
+<div class="modern-container">
+  <div class="container-fluid px-4 py-4">
+  {% include 'partials/_flash_messages.html' %}
+
+  <div class="modern-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-4">
+      <div class="flex-grow-1">
+        <div class="modern-header-content">
+          <h1 class="mb-2">
+            <i class="bi bi-hospital"></i>
+            Ambulatório
+            <span class="modern-header-badge">{{ itens|length if itens else 0 }} agendados</span>
+          </h1>
+          <p class="mb-0">Acompanhe a execução dos procedimentos agendados</p>
+        </div>
+      </div>
+      <div class="modern-breadcrumb-actions">
+        <a href="{{ url_for('sisreg.agenda') }}" class="btn modern-btn-primary d-inline-flex align-items-center gap-2 shadow-sm">
+          <i class="bi bi-calendar-week"></i> <span>Agenda</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# Filtros (similar ao layout da Regulação) #}
+  <div class="modern-filters-modern mb-5">
+    <div class="d-flex align-items-center mb-3">
+      <i class="bi bi-funnel me-2 text-primary"></i>
+      <h5 class="mb-0 text-primary fw-bold">Filtros de Pesquisa</h5>
+    </div>
+    <form method="GET" action="{{ url_for('sisreg.setor_ambulatorio_lista') }}" class="modern-filters-grid">
+      <div>
+        <label class="form-label text-muted fw-semibold">Nome do Paciente</label>
+        <div class="modern-input-with-icon">
+          <i class="bi bi-person-search icon"></i>
+          <input type="text" class="form-control" name="q" value="{{ request.args.get('q','') }}" placeholder="Digite o nome do paciente...">
+        </div>
+      </div>
+      <div class="modern-filters-actions">
+        <div class="modern-actions-group">
+          <button type="submit" class="btn btn-filter flex-grow-1">
+            <i class="bi bi-search me-2"></i>Filtrar
+          </button>
+          <a href="{{ url_for('sisreg.setor_ambulatorio_lista') }}" class="btn btn-clear flex-shrink-0">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Limpar
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if stats_counts %}
+  <div class="mb-4">
+    <div class="modern-stat-cards">
+      <div class="modern-stat-card modern-stat-card--success">
+        <div class="modern-stat-card__icon"><i class="bi bi-person-check"></i></div>
+        <div class="modern-stat-card__content">
+          <div class="modern-stat-card__number">{{ stats_counts.presentes }}</div>
+          <div class="modern-stat-card__label">Presentes</div>
+          <div class="modern-stat-card__subtitle">Pacientes que compareceram</div>
+        </div>
+      </div>
+      <div class="modern-stat-card modern-stat-card--danger">
+        <div class="modern-stat-card__icon"><i class="bi bi-person-x"></i></div>
+        <div class="modern-stat-card__content">
+          <div class="modern-stat-card__number">{{ stats_counts.faltas }}</div>
+          <div class="modern-stat-card__label">Faltas</div>
+          <div class="modern-stat-card__subtitle">Pacientes que não compareceram</div>
+        </div>
+      </div>
+      <div class="modern-stat-card modern-stat-card--warning">
+        <div class="modern-stat-card__icon"><i class="bi bi-dash"></i></div>
+        <div class="modern-stat-card__content">
+          <div class="modern-stat-card__number">{{ stats_counts.sem_registro }}</div>
+          <div class="modern-stat-card__label">Sem registro</div>
+          <div class="modern-stat-card__subtitle">Aguardando marcação de presença</div>
+        </div>
+      </div>
+      <div class="modern-stat-card">
+        <div class="modern-stat-card__icon"><i class="bi bi-collection"></i></div>
+        <div class="modern-stat-card__content">
+          <div class="modern-stat-card__number">{{ stats_counts.total }}</div>
+          <div class="modern-stat-card__label">Agendados</div>
+          <div class="modern-stat-card__subtitle">Total na listagem</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if itens and itens|length > 0 %}
+  <div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-table me-2 text-primary"></i>
+        <h5 class="mb-0 text-primary fw-bold">Pacientes Agendados</h5>
+      </div>
+      <div class="d-flex align-items-center text-muted">
+        <i class="bi bi-list-check me-2"></i>
+        <span class="fw-semibold">{{ itens|length }} registros</span>
+      </div>
+    </div>
+
+    <div class="modern-table-modern-wrapper">
+      <div class="table-responsive">
+        <table class="modern-table-modern">
+          <thead>
+            <tr>
+              <th><i class="bi bi-calendar me-1"></i>Data</th>
+              <th><i class="bi bi-clock me-1"></i>Hora</th>
+              <th><i class="bi bi-person me-1"></i>Paciente</th>
+              <th><i class="bi bi-clipboard-check me-1"></i>Especialidade/Exame</th>
+              <th><i class="bi bi-geo-alt me-1"></i>Local</th>
+              <th style="width: 28%"><i class="bi bi-person-check me-1"></i>Presença</th>
+              <th class="text-center"><i class="bi bi-gear me-1"></i>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in itens %}
+            <tr>
+              <td>{{ f.data_atendimento | format_date }}</td>
+              <td>{{ f.hora_agendamento }}</td>
+              <td>
+                <div class="d-flex flex-column">
+                  <strong class="mb-1">{{ f.nome_paciente }}</strong>
+                  <small class="text-muted">CPF: {{ f.cpf or 'N/I' }}</small>
+                </div>
+              </td>
+              <td>{{ f.especialidade }}</td>
+              <td>{{ f.local_destino }}</td>
+              <td>
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                  <div class="flex-grow-1">
+                    {% if f.compareceu is sameas true %}
+                      <span class="badge bg-success"><i class="bi bi-check2 me-1"></i>Presente</span>
+                    {% elif f.compareceu is sameas false %}
+                      <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Não compareceu</span>
+                    {% else %}
+                      <span class="badge bg-secondary"><i class="bi bi-dash-lg me-1"></i>Sem registro</span>
+                    {% endif %}
+                  </div>
+                  <div class="text-end">
+                    <button class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#modalPresenca"
+                            data-form-id="{{ f.id }}"
+                            data-compareceu="{% if f.compareceu is sameas true %}1{% elif f.compareceu is sameas false %}0{% else %}{% endif %}"
+                            data-paciente="{{ f.nome_paciente }}"
+                            data-procedimento="{{ f.especialidade }}"
+                            data-data="{{ f.data_atendimento | format_date }}"
+                            data-hora="{{ f.hora_agendamento }}"
+                            data-local="{{ f.local_destino }}">
+                      <i class="bi bi-pencil-square me-1"></i>Atualizar
+                    </button>
+                  </div>
+                </div>
+                <small class="text-muted d-block mt-1">Obs.: Reagendar/Cancelar é decisão da Regulação em caso de falta.</small>
+              </td>
+              <td class="text-center">
+                <a href="{{ url_for('sisreg.detalhes_formulario', form_id=f.id) }}" class="modern-icon-btn modern-view-btn" title="Ver detalhes">
+                  <i class="bi bi-eye"></i>
+                  <span class="visually-hidden">Ver</span>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="modern-empty-state">
+    <div class="modern-empty-content">
+      <div class="modern-empty-icon"><i class="bi bi-clipboard-check"></i></div>
+      <h4 class="modern-empty-title">Sem agendamentos</h4>
+      <p class="modern-empty-subtitle">Nenhum paciente agendado no momento.</p>
+    </div>
+  </div>
+  {% endif %}
+  {# Modal para atualizar presença #}
+  <div class="modal fade" id="modalPresenca" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-check me-2 text-primary"></i>Atualizar Presença</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="form-presenca" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="modal-body">
+            <div class="mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person text-muted"></i>
+                <div>
+                  <div class="fw-semibold" id="mp-paciente">—</div>
+                  <div class="text-muted small">
+                    <span id="mp-procedimento">—</span> •
+                    <span id="mp-data">—</span> às <span id="mp-hora">—</span> •
+                    <span id="mp-local">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <div class="small text-muted mb-1">Status de presença</div>
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span id="mp-status" class="badge bg-secondary">Sem registro</span>
+                <div class="vr d-none d-md-block"></div>
+                <div class="btn-group" role="group" aria-label="Definir presença">
+                  <input type="radio" class="btn-check" name="compareceu_choice" id="mp-presente" autocomplete="off" value="1">
+                  <label class="btn btn-outline-success" for="mp-presente"><i class="bi bi-check2 me-1"></i>Presente</label>
+                  <input type="radio" class="btn-check" name="compareceu_choice" id="mp-falta" autocomplete="off" value="0">
+                  <label class="btn btn-outline-danger" for="mp-falta"><i class="bi bi-x-lg me-1"></i>Não compareceu</label>
+                </div>
+              </div>
+              {# Campo oculto compatível com checkbox para backend existente: enviado apenas se presente #}
+              <input type="hidden" id="mp-compareceu-hidden" name="compareceu" value="on" disabled>
+            </div>
+            <div class="mt-3">
+              <label for="mp-observacao" class="form-label">Observação (opcional)</label>
+              <textarea id="mp-observacao" name="resultado_procedimento" class="form-control" rows="3" placeholder="Adicione um comentário que ficará registrado nos eventos..."></textarea>
+            </div>
+            <div class="form-text mt-2">Se o paciente não compareceu, a decisão de reagendar ou cancelar será tomada pela Regulação.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  // Preenche e configura o modal de presença
+  const modalPresenca = document.getElementById('modalPresenca');
+  modalPresenca?.addEventListener('show.bs.modal', function (event) {
+    const btn = event.relatedTarget;
+    if (!btn) return;
+    const formId = btn.getAttribute('data-form-id');
+    const compareceuAttr = btn.getAttribute('data-compareceu');
+    const compareceu = compareceuAttr === '1' ? true : (compareceuAttr === '0' ? false : null);
+    const paciente = btn.getAttribute('data-paciente') || '—';
+    const procedimento = btn.getAttribute('data-procedimento') || '—';
+    const data = btn.getAttribute('data-data') || '—';
+    const hora = btn.getAttribute('data-hora') || '—';
+    const local = btn.getAttribute('data-local') || '—';
+
+    const form = modalPresenca.querySelector('#form-presenca');
+    if (formId && form) {
+      form.action = `{{ url_for('sisreg.setor_ambulatorio_atualizar', form_id=0) }}`.replace('0', formId);
+    }
+    const rPresente = modalPresenca.querySelector('#mp-presente');
+    const rFalta = modalPresenca.querySelector('#mp-falta');
+    if (rPresente && rFalta) {
+      rPresente.checked = compareceu === true;
+      rFalta.checked = compareceu === false;
+    }
+    const status = modalPresenca.querySelector('#mp-status');
+    if (status) {
+      if (compareceu === true) {
+        status.textContent = 'Presente';
+        status.className = 'badge bg-success';
+      } else if (compareceu === false) {
+        status.textContent = 'Não compareceu';
+        status.className = 'badge bg-danger';
+      } else {
+        status.textContent = 'Sem registro';
+        status.className = 'badge bg-secondary';
+      }
+    }
+    // Hidden field behavior: only submit 'compareceu=on' if presente
+    const hidden = modalPresenca.querySelector('#mp-compareceu-hidden');
+    if (hidden) hidden.disabled = !(compareceu === true);
+    const setText = (id, value) => {
+      const el = modalPresenca.querySelector(id);
+      if (el) el.textContent = value;
+    };
+    setText('#mp-paciente', paciente);
+    setText('#mp-procedimento', procedimento);
+    setText('#mp-data', data);
+    setText('#mp-hora', hora);
+    setText('#mp-local', local);
+  });
+  // React to radio changes: update status badge and hidden field
+  modalPresenca?.addEventListener('change', function (e) {
+    const t = e.target;
+    if (!t || t.name !== 'compareceu_choice') return;
+    const status = modalPresenca.querySelector('#mp-status');
+    const hidden = modalPresenca.querySelector('#mp-compareceu-hidden');
+    if (t.value === '1') {
+      if (status) { status.textContent = 'Presente'; status.className = 'badge bg-success'; }
+      if (hidden) hidden.disabled = false; // submit compareceu=on
+    } else if (t.value === '0') {
+      if (status) { status.textContent = 'Não compareceu'; status.className = 'badge bg-danger'; }
+      if (hidden) hidden.disabled = true; // do not submit field -> backend treats as False
+    }
+  });
+
+  // Enable Bootstrap tooltips in this page (if Bootstrap is available)
+  try {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipTriggerList.forEach(function (el) {
+      if (window.bootstrap && bootstrap.Tooltip) new bootstrap.Tooltip(el);
+    });
+  } catch (e) { /* noop */ }
+</script>
+{% endblock %}

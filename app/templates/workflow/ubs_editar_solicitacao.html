@@ -1,0 +1,337 @@
+{% extends "navbar.html" %}
+{% block title %}Editar Solicitação - UBS{% endblock %}
+
+{% block content %}
+<div class="modern-container">
+  {% include 'partials/_flash_messages.html' %}
+  <div class="container">
+
+    <div class="modern-header mb-3">
+      <h1>
+        <i class="bi bi-pencil-square"></i>
+        Editar Solicitação
+      </h1>
+      <p>Atualize os dados da solicitação antes de reenviar à Regulação</p>
+    </div>
+
+    {% if motivo_revisao %}
+    <div class="alert alert-warning d-flex align-items-start" role="alert">
+      <i class="bi bi-info-circle me-2 mt-1"></i>
+      <div>
+        <div class="fw-semibold">Motivo da revisão pelo Setor Regulação</div>
+        <div class="small text-dark">{{ motivo_revisao }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card shadow-lg border-0">
+      <div class="card-header">
+        <h5>
+          <i class="bi bi-pencil-square"></i>
+          Dados da Solicitação (UBS)
+        </h5>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('sisreg.sector_ubs_editar', form_id=formulario.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="modern-form-section mb-4">
+            <h6 class="section-title">
+              <i class="bi bi-person-circle text-danger"></i>
+              Dados do Paciente
+            </h6>
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="modern-form-label">Buscar Paciente por Nome, CPF ou CNS</label>
+                <div class="position-relative">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="busca_paciente" class="form-control modern-form-control" placeholder="Digite ao menos 2 caracteres para buscar...">
+                  </div>
+                  <div id="lista_resultados" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050; max-height: 240px; overflow-y: auto;"></div>
+                </div>
+              </div>
+
+              <div class="col-md-8">
+                <label class="modern-form-label">Nome do Paciente <span class="text-danger">*</span></label>
+                <input type="text" class="form-control modern-form-control" name="nome_paciente" id="nome_paciente" required value="{{ formulario.nome_paciente }}">
+              </div>
+              <div class="col-md-4">
+                <label class="modern-form-label">Data de Nascimento <span class="text-danger">*</span></label>
+                <input type="date" class="form-control modern-form-control" name="nascimento" id="nascimento" required value="{{ formulario.nascimento if formulario.nascimento else '' }}">
+              </div>
+              <div class="col-md-4">
+                <label class="modern-form-label">CPF <span class="text-danger">*</span></label>
+                <input type="text" class="form-control modern-form-control" name="cpf" id="cpf" placeholder="000.000.000-00" maxlength="14" required value="{{ formulario.cpf }}">
+              </div>
+            </div>
+          </div>
+
+          <div class="modern-form-section mb-4" id="dados-solicitacao-section" data-current-especialidade='{{ formulario.especialidade|tojson }}' data-current-unidade='{{ formulario.unidade_saude|tojson }}'>
+            <h6 class="section-title">
+              <i class="bi bi-clipboard-data text-danger"></i>
+              Dados da Solicitação
+            </h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="modern-form-label">Unidade de Saúde <span class="text-danger">*</span></label>
+                <select class="form-select modern-form-control" name="unidade_saude" id="unidade_saude" required>
+                  <option value="" disabled>Selecione</option>
+                  <option value="UBS São Miguel">UBS São Miguel</option>
+                  <option value="UBS Santa Rosa">UBS Santa Rosa</option>
+                  <option value="UBS Tiradentes">UBS Tiradentes</option>
+                  <option value="UBS COAB">UBS COAB</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="modern-form-label">Médico Solicitante <span class="text-danger">*</span></label>
+                <input type="text" class="form-control modern-form-control" name="medico_solicitante" id="medico_solicitante" required value="{{ formulario.medico_solicitante }}">
+              </div>
+
+              <div class="col-md-12">
+                <div class="mb-2">Tipo de Solicitação <span class="text-danger">*</span></div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="tipo_solicitacao" id="radioEspecialidade" value="especialidade" checked>
+                  <label class="form-check-label" for="radioEspecialidade">Por Especialidade</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="tipo_solicitacao" id="radioExame" value="exame">
+                  <label class="form-check-label" for="radioExame">Exame Específico</label>
+                </div>
+              </div>
+
+              <div class="col-md-6" id="selectEspecialidadeContainer">
+                <label class="modern-form-label">Especialidade</label>
+                <select class="form-select modern-form-control" id="selectEspecialidade" name="especialidade" required>
+                  <option value="" disabled>Selecione a especialidade...</option>
+                  <option value="Cirurgia Geral">Cirurgia Geral</option>
+                  <option value="Clínica Médica">Clínica Médica</option>
+                  <option value="Ortopedia">Ortopedia</option>
+                  <option value="Pediatria">Pediatria</option>
+                  <option value="Psiquiatria">Psiquiatria</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 d-none" id="selectExameContainer">
+                <label class="modern-form-label">Exame</label>
+                <select class="form-select modern-form-control" id="selectExame" name="especialidade" required disabled>
+                  <option value="" disabled>Selecione o exame...</option>
+                  <option value="Raio-X">Raio-X</option>
+                  <option value="Tomografia">Tomografia</option>
+                  <option value="Ressonância">Ressonância</option>
+                  <option value="Ultrassonografia">Ultrassonografia</option>
+                  <option value="Eletrocardiograma">Eletrocardiograma</option>
+                  <option value="Exame de Sangue">Exame de Sangue</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="modern-form-section mb-2">
+            <h6 class="section-title">
+              <i class="bi bi-chat-left-text text-danger"></i>
+              Resposta/Correção
+            </h6>
+            <textarea name="observacao_resposta" class="form-control modern-form-control" rows="4" placeholder="Descreva as correções realizadas e quaisquer informações adicionais" required></textarea>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <a href="{{ url_for('sisreg.formularios') }}" class="btn modern-btn-secondary">
+              <i class="bi bi-arrow-left"></i>
+              Voltar
+            </a>
+            <button type="submit" class="btn modern-btn-primary">
+              <i class="bi bi-send"></i>
+              Salvar e Enviar para Regulação
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // MÁSCARA DO CPF
+    const cpfInput = document.getElementById('cpf');
+    if (cpfInput) {
+      cpfInput.addEventListener('input', function (event) {
+        let value = event.target.value.replace(/\D/g, '').substring(0, 11);
+        let formatted = value;
+        if (value.length > 9) {
+          formatted = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2}).*/, '$1.$2.$3-$4');
+        } else if (value.length > 6) {
+          formatted = value.replace(/^(\d{3})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
+        } else if (value.length > 3) {
+          formatted = value.replace(/^(\d{3})(\d{0,3}).*/, '$1.$2');
+        }
+        event.target.value = formatted;
+      });
+    }
+
+    // TOGGLE ESPECIALIDADE/EXAME
+    const radioEspecialidade = document.getElementById('radioEspecialidade');
+    const radioExame = document.getElementById('radioExame');
+    const selectEspecialidadeContainer = document.getElementById('selectEspecialidadeContainer');
+    const selectExameContainer = document.getElementById('selectExameContainer');
+    const selectEspecialidade = document.getElementById('selectEspecialidade');
+    const selectExame = document.getElementById('selectExame');
+
+    function toggleSelects() {
+      if (radioEspecialidade.checked) {
+        selectEspecialidadeContainer.classList.remove('d-none');
+        selectEspecialidade.disabled = false;
+        selectEspecialidade.required = true;
+        selectExameContainer.classList.add('d-none');
+        selectExame.disabled = true;
+        selectExame.required = false;
+      } else if (radioExame.checked) {
+        selectEspecialidadeContainer.classList.add('d-none');
+        selectEspecialidade.disabled = true;
+        selectEspecialidade.required = false;
+        selectExameContainer.classList.remove('d-none');
+        selectExame.disabled = false;
+        selectExame.required = true;
+      }
+    }
+    radioEspecialidade.addEventListener('change', toggleSelects);
+    radioExame.addEventListener('change', toggleSelects);
+
+    // PRE-FILL: especialidade e unidade
+    const section = document.getElementById('dados-solicitacao-section');
+    const currentEsp = section?.getAttribute('data-current-especialidade') ? JSON.parse(section.getAttribute('data-current-especialidade')) : '';
+    const currentUnd = section?.getAttribute('data-current-unidade') ? JSON.parse(section.getAttribute('data-current-unidade')) : '';
+
+    const especialidadesList = [
+      'Cirurgia Geral', 'Clínica Médica', 'Ortopedia', 'Pediatria', 'Psiquiatria'
+    ];
+    const examesList = [
+      'Raio-X', 'Tomografia', 'Ressonância', 'Ultrassonografia', 'Eletrocardiograma', 'Exame de Sangue'
+    ];
+
+    // Decide se é especialidade ou exame
+    if (examesList.includes(currentEsp)) {
+      radioExame.checked = true;
+      toggleSelects();
+      // Ensure option exists then select
+      let opt = Array.from(selectExame.options).find(o => o.value === currentEsp);
+      if (!opt) {
+        opt = new Option(currentEsp, currentEsp, true, true);
+        selectExame.add(opt);
+      } else {
+        selectExame.value = currentEsp;
+      }
+    } else {
+      radioEspecialidade.checked = true;
+      toggleSelects();
+      let opt = Array.from(selectEspecialidade.options).find(o => o.value === currentEsp);
+      if (!opt && currentEsp) {
+        opt = new Option(currentEsp, currentEsp, true, true);
+        selectEspecialidade.add(opt);
+      } else if (currentEsp) {
+        selectEspecialidade.value = currentEsp;
+      }
+    }
+
+    // Preselect unidade
+    const undSelect = document.getElementById('unidade_saude');
+    if (undSelect) {
+      let uopt = Array.from(undSelect.options).find(o => o.value === currentUnd);
+      if (!uopt && currentUnd) {
+        uopt = new Option(currentUnd, currentUnd, true, true);
+        undSelect.add(uopt);
+      } else if (currentUnd) {
+        undSelect.value = currentUnd;
+      }
+    }
+
+    // BUSCA PACIENTE reaproveitada (preenche campos)
+    const buscaInput = document.getElementById('busca_paciente');
+    const resultadosBox = document.getElementById('lista_resultados');
+    const nomeInput = document.getElementById('nome_paciente');
+    const nascInput = document.getElementById('nascimento');
+    const cpfFormInput = document.getElementById('cpf');
+
+    let buscaTimeout;
+    function fecharResultados() {
+      resultadosBox.classList.add('d-none');
+      resultadosBox.innerHTML = '';
+    }
+
+    function formatarDataParaInput(dataStr) {
+      if (!dataStr) return '';
+      const isoMatch = dataStr.match(/^\d{4}-\d{2}-\d{2}$/);
+      if (isoMatch) return dataStr;
+      const brMatch = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (brMatch) {
+        const [_, d, m, y] = brMatch;
+        return `${y}-${m}-${d}`;
+      }
+      const dt = new Date(dataStr);
+      if (!isNaN(dt.getTime())) {
+        const mm = ('0' + (dt.getMonth() + 1)).slice(-2);
+        const dd = ('0' + dt.getDate()).slice(-2);
+        return `${dt.getFullYear()}-${mm}-${dd}`;
+      }
+      return '';
+    }
+
+    function renderResultados(lista) {
+      if (!lista || lista.length === 0) { fecharResultados(); return; }
+      resultadosBox.innerHTML = '';
+      lista.forEach(p => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'list-group-item list-group-item-action';
+        const cns = (p.cns || '').toString();
+        const cpf = (p.cpf || '').toString();
+        const nasc = p.data_nascimento || '';
+        item.innerHTML = `<div class="d-flex flex-column">
+            <strong>${p.nome || ''}</strong>
+            <small class="text-muted">CPF: ${cpf || '—'}${cns ? ` | CNS: ${cns}` : ''} | Nasc.: ${nasc || '—'}</small>
+        </div>`;
+        item.addEventListener('click', () => {
+          if (p.nome) nomeInput.value = p.nome;
+          if (p.cpf && cpfFormInput) cpfFormInput.value = p.cpf;
+          const v = formatarDataParaInput(p.data_nascimento);
+          if (v) nascInput.value = v;
+          fecharResultados();
+        });
+        resultadosBox.appendChild(item);
+      });
+      resultadosBox.classList.remove('d-none');
+    }
+
+    function executarBusca(q) {
+      const url = new URL(window.location.origin + '/sisreg/api/pacientes/busca');
+      url.searchParams.set('q', q);
+      fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) { renderResultados(data); } else { fecharResultados(); }
+        })
+        .catch(() => fecharResultados());
+    }
+
+    if (buscaInput) {
+      buscaInput.addEventListener('input', (e) => {
+        const v = (e.target.value || '').trim();
+        if (v.length < 2) { fecharResultados(); return; }
+        clearTimeout(buscaTimeout);
+        buscaTimeout = setTimeout(() => executarBusca(v), 250);
+      });
+      document.addEventListener('click', (ev) => {
+        if (!resultadosBox.contains(ev.target) && ev.target !== buscaInput) {
+          fecharResultados();
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends "navbar.html" %}
+{% block title %}UBS - Solicitações{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="modern-container">
+	{% include 'partials/_flash_messages.html' %}
+	<div class="container-fluid px-4">
+
+		{% if stats_counts %}
+		{% set counts = namespace(
+			total=stats_counts.total,
+			pendentes=stats_counts.pendentes,
+			em_andamento=stats_counts.em_andamento,
+			concluidos=stats_counts.concluidos
+		) %}
+		{% else %}
+		{% set counts = namespace(total=itens|length if itens else 0, pendentes=0, em_andamento=0, concluidos=0) %}
+		{% endif %}
+
+		<div class="modern-header mb-4">
+			<div class="d-flex flex-wrap justify-content-between align-items-start gap-4">
+				<div class="flex-grow-1">
+					<div class="modern-header-content">
+						<h1 class="mb-2">
+							<i class="bi bi-hospital"></i>
+							UBS
+							<span class="modern-header-badge">{{ counts.total }} registros</span>
+						</h1>
+						<p class="mb-0">Acompanhe suas solicitações e inicie novas quando necessário.</p>
+					</div>
+				</div>
+				<div class="modern-breadcrumb-actions">
+					<a href="{{ url_for('sisreg.novo_formulario') }}"
+						class="btn modern-btn-primary d-inline-flex align-items-center gap-2 shadow-sm">
+						<i class="bi bi-plus-circle"></i> <span>Nova Solicitação</span>
+					</a>
+					<a href="{{ url_for('sisreg.formularios') }}"
+						class="btn modern-btn-secondary d-inline-flex align-items-center gap-2 shadow-sm">
+						<i class="bi bi-collection"></i> <span>Todos</span>
+					</a>
+				</div>
+			</div>
+		</div>
+
+		<div class="mb-4">
+			<div class="modern-stat-cards">
+				{% set pendente_active = (filter_status == 'pendente') %}
+				<a href="{{ pendente_active and url_for('sisreg.sector_ubs_lista', q=q, meus=meus and '1' or '') or url_for('sisreg.sector_ubs_lista', filter_status='pendente', q=q, meus=meus and '1' or '') }}"
+					class="modern-stat-card modern-stat-card--danger {% if pendente_active %}is-active{% endif %}">
+					<div class="modern-stat-card__icon"><i class="bi bi-exclamation-triangle"></i></div>
+					<div class="modern-stat-card__content">
+						<div class="modern-stat-card__number">{{ counts.pendentes }}</div>
+						<div class="modern-stat-card__label">Registros Pendentes</div>
+						<div class="modern-stat-card__subtitle">Requerem ação imediata</div>
+					</div>
+				</a>
+
+				{% set em_andamento_active = (filter_status == 'em_andamento') %}
+				<a href="{{ em_andamento_active and url_for('sisreg.sector_ubs_lista', q=q, meus=meus and '1' or '') or url_for('sisreg.sector_ubs_lista', filter_status='em_andamento', q=q, meus=meus and '1' or '') }}"
+					class="modern-stat-card modern-stat-card--warning {% if em_andamento_active %}is-active{% endif %}">
+					<div class="modern-stat-card__icon"><i class="bi bi-hourglass-split"></i></div>
+					<div class="modern-stat-card__content">
+						<div class="modern-stat-card__number">{{ counts.em_andamento }}</div>
+						<div class="modern-stat-card__label">Em Andamento</div>
+						<div class="modern-stat-card__subtitle">Sendo processados</div>
+					</div>
+				</a>
+
+				{% set concluido_active = (filter_status == 'concluido') %}
+				<a href="{{ concluido_active and url_for('sisreg.sector_ubs_lista', q=q, meus=meus and '1' or '') or url_for('sisreg.sector_ubs_lista', filter_status='concluido', q=q, meus=meus and '1' or '') }}"
+					class="modern-stat-card modern-stat-card--success {% if concluido_active %}is-active{% endif %}">
+					<div class="modern-stat-card__icon"><i class="bi bi-check2-circle"></i></div>
+					<div class="modern-stat-card__content">
+						<div class="modern-stat-card__number">{{ counts.concluidos }}</div>
+						<div class="modern-stat-card__label">Registros Concluídos</div>
+						<div class="modern-stat-card__subtitle">Finalizados com sucesso</div>
+					</div>
+				</a>
+			</div>
+		</div>
+
+		<div class="modern-filters-modern mb-5">
+			<div class="d-flex align-items-center mb-3">
+				<i class="bi bi-funnel me-2 text-primary"></i>
+				<h5 class="mb-0 text-primary fw-bold">Filtros de Pesquisa</h5>
+			</div>
+			<form method="GET" action="{{ url_for('sisreg.sector_ubs_lista') }}" class="modern-filters-grid">
+				<div>
+					<label class="form-label text-muted fw-semibold">Nome/CPF</label>
+					<div class="modern-input-with-icon">
+						<i class="bi bi-person-search icon"></i>
+						<input type="text" class="form-control" name="q" value="{{ q or '' }}" placeholder="Digite nome ou CPF...">
+					</div>
+				</div>
+				{% if filter_status %}
+				<input type="hidden" name="filter_status" value="{{ filter_status }}" />
+				{% endif %}
+				<div>
+					<label class="form-label text-muted fw-semibold">Apenas meus</label>
+					<div class="form-check">
+						<input class="form-check-input" type="checkbox" name="meus" id="meus" {% if meus %}checked{% endif %}>
+						<label class="form-check-label" for="meus">Mostra só o que eu criei</label>
+					</div>
+				</div>
+				<div class="modern-filters-actions">
+					<div class="modern-actions-group">
+						<button type="submit" class="btn btn-filter flex-grow-1">
+							<i class="bi bi-search me-2"></i>Filtrar
+						</button>
+						<a href="{{ url_for('sisreg.sector_ubs_lista') }}" class="btn btn-clear flex-shrink-0">
+							<i class="bi bi-arrow-counterclockwise me-2"></i>Limpar
+						</a>
+					</div>
+				</div>
+			</form>
+		</div>
+
+		<div class="mb-4">
+			<div class="d-flex align-items-center justify-content-between mb-4">
+				<div class="d-flex align-items-center">
+					<i class="bi bi-table me-2 text-primary"></i>
+					<h5 class="mb-0 text-primary fw-bold">Solicitações da UBS</h5>
+				</div>
+				<div class="d-flex align-items-center text-muted">
+					<i class="bi bi-list-check me-2"></i>
+					<span class="fw-semibold">{{ itens|length if itens else 0 }} de {{ counts.total }} registros</span>
+				</div>
+			</div>
+			{% if itens and itens|length > 0 %}
+			<div class="modern-table-modern-wrapper">
+				<div class="table-responsive">
+					<table class="modern-table-modern">
+						<thead>
+							<tr>
+								<th><i class="bi bi-person me-1"></i>Paciente</th>
+								<th><i class="bi bi-person-vcard me-1"></i>CPF</th>
+								<th><i class="bi bi-clipboard2-pulse me-1"></i>Especialidade/Exame</th>
+								<th><i class="bi bi-arrow-right-circle me-1"></i>Fluxo</th>
+								<th><i class="bi bi-flag me-1"></i>Status Setor</th>
+								<th><i class="bi bi-calendar-date me-1"></i>Registro</th>
+								<th><i class="bi bi-gear me-1"></i>Ações</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for f in itens %}
+							{% set exibe = 'Outro' %}
+							{% set row_cls = '' %}
+							{% if f.status == 'PENDENTE' %}
+								{% set exibe = 'Pendente' %}
+								{% set row_cls = 'modern-row-pendente' %}
+							{% elif f.status == 'EM_ANALISE' %}
+								{% set exibe = 'Em Andamento' %}
+								{% set row_cls = 'modern-row-andamento' %}
+							{% elif f.status == 'AGENDADO' %}
+								{% set exibe = 'Agendado' %}
+								{% set row_cls = 'modern-row-andamento' %}
+							{% elif f.status == 'CONCLUIDO' %}
+								{% set exibe = 'Concluído' %}
+								{% set row_cls = 'modern-row-concluido' %}
+							{% elif f.status == 'CANCELADO' %}
+								{% set exibe = 'Cancelado' %}
+								{% set row_cls = 'modern-row-concluido' %}
+							{% else %}
+								{% set exibe = f.status | replace('_',' ') | title %}
+							{% endif %}
+
+							{% set fluxo_label = 'Indefinido' %}
+							{% set fluxo_icon = 'bi-question-circle' %}
+							{% set fluxo_cls = 'bg-light text-dark' %}
+							{% if f.status == 'PENDENTE' %}
+								{% set fluxo_label = 'Aguardando Revisão' %}
+								{% set fluxo_icon = 'bi-pencil-square' %}
+								{% set fluxo_cls = 'bg-warning text-dark' %}
+							{% elif f.status == 'EM_ANALISE' %}
+								{% set fluxo_label = 'Aguardando Regulador' %}
+								{% set fluxo_icon = 'bi-hourglass-split' %}
+								{% set fluxo_cls = 'bg-warning text-dark' %}
+							{% elif f.status == 'AGENDADO' %}
+								{% set fluxo_label = 'Encaminhado ao Ambulatório' %}
+								{% set fluxo_icon = 'bi-arrow-right-circle' %}
+								{% set fluxo_cls = 'bg-primary' %}
+							{% elif f.status == 'CONCLUIDO' %}
+								{% set fluxo_label = 'Finalizado' %}
+								{% set fluxo_icon = 'bi-check-circle' %}
+								{% set fluxo_cls = 'bg-success' %}
+							{% elif f.status == 'CANCELADO' %}
+								{% set fluxo_label = 'Encerrado' %}
+								{% set fluxo_icon = 'bi-flag' %}
+								{% set fluxo_cls = 'bg-secondary' %}
+							{% endif %}
+
+							<tr class="modern-row-status {{ row_cls }}">
+								<td class="cell-patient">
+									<div class="d-flex flex-column">
+										<strong class="mb-1">{{ f.nome_paciente }}</strong>
+									</div>
+								</td>
+								<td>{{ f.cpf or 'N/I' }}</td>
+								<td>{{ f.especialidade or 'N/I' }}</td>
+								<td class="text-center">
+									<span class="badge rounded-pill {{ fluxo_cls }}">
+										<i class="bi {{ fluxo_icon }} me-1"></i>{{ fluxo_label }}
+									</span>
+								</td>
+								<td class="text-center">
+									<span class="badge rounded-pill
+										{% if f.status == 'PENDENTE' %} bg-danger
+										{% elif f.status == 'EM_ANALISE' %} bg-warning text-dark
+										{% elif f.status == 'AGENDADO' %} bg-primary
+										{% elif f.status == 'CONCLUIDO' %} bg-success
+										{% elif f.status == 'CANCELADO' %} bg-secondary
+										{% else %} bg-light text-dark {% endif %}">
+										{% if f.status == 'PENDENTE' %}Revisão Solicitada{% else %}{{ exibe }}{% endif %}
+									</span>
+								</td>
+								<td>{{ f.data_registro | format_date if f.data_registro else 'N/I' }}</td>
+								<td class="text-center">
+									<div class="d-flex justify-content-center gap-2">
+										{% if f.status == 'PENDENTE' %}
+																		{% set ns = namespace(motivo='') %}
+																				{% if f.observacao %}
+																					{% set lines = f.observacao.split('\n') %}
+																					{% for l in lines|reverse %}
+																						{% if ns.motivo == '' and '[REGULAÇÃO - SOLICITAR REVISÃO]' in l %}
+																							{% set ns.motivo = l.replace('[REGULAÇÃO - SOLICITAR REVISÃO] ', '') %}
+																						{% endif %}
+																					{% endfor %}
+																				{% endif %}
+										<a class="btn btn-sm btn-primary rounded-pill shadow-sm" href="{{ url_for('sisreg.sector_ubs_editar', form_id=f.id) }}" title="Preencher">
+											<i class="bi bi-pencil-square me-1"></i>Preencher
+										</a>
+										{% endif %}
+										<a href="{{ url_for('sisreg.detalhes_formulario', form_id=f.id) }}" class="modern-icon-btn modern-view-btn" title="Ver detalhes">
+											<i class="bi bi-eye"></i>
+											<span class="visually-hidden">Ver</span>
+										</a>
+									</div>
+								</td>
+							</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			{% else %}
+			<div class="modern-empty-state">
+				<div class="modern-empty-content">
+					<div class="modern-empty-icon">
+						<i class="bi bi-clipboard-check"></i>
+					</div>
+					<h4 class="modern-empty-title">Sem solicitações</h4>
+					<p class="modern-empty-subtitle">Nenhuma solicitação encontrada para este filtro.</p>
+				</div>
+			</div>
+			{% endif %}
+		</div>
+
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% endblock %}
+
+{% block modals %}{% endblock %}

@@ -8,25 +8,36 @@ from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 
+from flask_wtf.csrf import CSRFProtect
+
 from app.models import db, User, Role
 from flask_security import Security, SQLAlchemyUserDatastore
 from app.routes.admin import create_admin_blueprint
 from app.utils.rbac_permissions import initialize_rbac, assign_role_to_user
 from app.routes.auth import auth_bp
 from app.routes.main import main_bp
-from app.routes.util import util_bp, format_date_filter
+from app.routes.util import format_status_filter, util_bp, format_date_filter
+from app.routes.sisreg import sisreg_bp
 
 load_dotenv()
 
 def create_app():
     app = Flask(__name__, static_folder="static", template_folder="templates")
+    
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+    
     app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-sispla-2024-rbac-system')
     basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database.db')
+    
+    instance_dir = os.path.join(basedir, 'instance')
+    os.makedirs(instance_dir, exist_ok=True)
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'database.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'app', 'uploads')
     app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
-    # Flask-Security-Too basic configuration
+
     app.config['SECURITY_PASSWORD_HASH'] = os.getenv('SECURITY_PASSWORD_HASH', 'argon2')
     app.config['SECURITY_PASSWORD_SALT'] = os.getenv('SECURITY_PASSWORD_SALT', 'change-me-salt')
     app.config['SECURITY_REGISTERABLE'] = False
@@ -38,13 +49,12 @@ def create_app():
         {"username": {"mapper": "flask_security.uia_username_mapper", "case_insensitive": True}},
         {"email": {"mapper": "flask_security.uia_email_mapper", "case_insensitive": True}},
     ]
-    # Don’t register FS blueprint; we keep our custom templates/routes for now
+
     app.config['SECURITY_POST_LOGIN_VIEW'] = 'main.panel'
     app.config['SECURITY_UNAUTHORIZED_VIEW'] = 'main.panel'
     db.init_app(app)
     Migrate(app, db)
 
-    # Setup Flask-Security-Too datastore
     user_datastore = SQLAlchemyUserDatastore(db, User, Role)
     Security(app=app, datastore=user_datastore, register_blueprint=False)
 
@@ -60,6 +70,7 @@ def registry_routes(app):
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(util_bp)
+    app.register_blueprint(sisreg_bp, url_prefix="/sisreg")
 
 def login_config(app):
     login_manager = LoginManager()
@@ -70,17 +81,11 @@ def login_config(app):
 
     @login_manager.user_loader
     def load_user(user_id: str):
-        """Flask-Login loader.
-        With Flask-Security's FSUserMixin, get_id() returns fs_uniquifier (string).
-        Load by fs_uniquifier; fallback to primary key for any legacy sessions.
-        """
         if not user_id:
             return None
-        # Try fs_uniquifier (new behavior under FSUserMixin)
         user = User.query.filter_by(fs_uniquifier=user_id).first()
         if user:
             return user
-        # Fallback: some very old sessions might still store numeric PK
         try:
             return db.session.get(User, int(user_id))
         except (ValueError, TypeError):
@@ -88,6 +93,7 @@ def login_config(app):
 
 def registry_filters(app):
     app.jinja_env.filters['format_date'] = format_date_filter
+    app.jinja_env.filters['format_status'] = format_status_filter
     app.jinja_env.filters['format_date_short'] = lambda val: format_date_filter(val, format_str='%d/%m/%Y')
     app.jinja_env.filters['format_date_time'] = lambda val: format_date_filter(val, format_str='%d/%m/%Y %H:%M')
     app.jinja_env.filters['format_time'] = lambda val: format_date_filter(val, format_str='%H:%M')
@@ -127,6 +133,6 @@ def initdb(app):
     @app.cli.command("migrate-upgrade")
     def migrate_upgrade():
         msg = f"Auto migration - {datetime.datetime.now().strftime('%d-%m-%Y_%H-%M-%S')}"
-        subprocess.run(["flask", "db", "migrate", "-m", msg], check=True)
-        subprocess.run(["flask", "db", "upgrade"], check=True)
+        subprocess.run([".\\venv\\Scripts\\flask", "db", "migrate", "-m", msg], check=True)
+        subprocess.run([".\\venv\\Scripts\\flask", "db", "upgrade"], check=True)
         print("Migração e upgrade aplicados com sucesso.")

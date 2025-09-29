@@ -11,7 +11,9 @@ uploads/
 
 .vscode/
 
+# Database files
 database.db
+instance/
 
 .github/
 

@@ -1,0 +1,449 @@
+{% extends "navbar.html" %}
+{% block title %}Regulação - Solicitações{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+{% endblock %}
+{% block content %}
+<div class="modern-container">
+  <div class="container-fluid px-4 py-4">
+  {% include 'partials/_flash_messages.html' %}
+
+  <div class="modern-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-4">
+      <div class="flex-grow-1">
+        <div class="modern-header-content">
+          <h1 class="mb-2">
+            <i class="bi bi-diagram-3"></i>
+            Regulação
+            {% if stats_counts %}
+            <span class="modern-header-badge">{{ stats_counts.total }} registros</span>
+            {% endif %}
+          </h1>
+          <p class="mb-0">Acompanhe e decida as solicitações de exames</p>
+        </div>
+      </div>
+      <div class="modern-breadcrumb-actions">
+        <a href="{{ url_for('sisreg.formularios', status='EM_ANALISE') }}" class="btn modern-btn-secondary d-inline-flex align-items-center gap-2 shadow-sm">
+          <i class="bi bi-collection"></i> <span>Todos</span>
+        </a>
+        <a href="{{ url_for('sisreg.agenda') }}" class="btn modern-btn-primary d-inline-flex align-items-center gap-2 shadow-sm">
+          <i class="bi bi-calendar-week"></i> <span>Agenda</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {% if stats_counts %}
+  <div class="mb-4">
+    <div class="modern-stat-cards">
+      {% set q = request.args.get('q','') %}
+      <a href="{{ url_for('sisreg.setor_regulacao_lista', q=q) if status=='PENDENTES' else url_for('sisreg.setor_regulacao_lista', status='PENDENTES', q=q) }}" class="modern-stat-card modern-stat-card--danger {% if status=='PENDENTES' %}is-active{% endif %}">
+        <div class="modern-stat-card__icon"><i class="bi bi-exclamation-triangle"></i></div>
+        <div class="modern-stat-card__content">
+          <div class="modern-stat-card__number">{{ stats_counts.pendentes }}</div>
+          <div class="modern-stat-card__label">Pendente</div>
+          <div class="modern-stat-card__subtitle">Aguardando decisão</div>
+        </div>
+      </a>
+      <a href="{{ url_for('sisreg.setor_regulacao_lista', q=q) if status=='AGENDADO' else url_for('sisreg.setor_regulacao_lista', status='AGENDADO', q=q) }}" class="modern-stat-card modern-stat-card--warning {% if status=='AGENDADO' %}is-active{% endif %}">
+        <div class="modern-stat-card__icon"><i class="bi bi-hourglass-split"></i></div>
+        <div class="modern-stat-card__content">
+          <div class="modern-stat-card__number">{{ stats_counts.agendados }}</div>
+          <div class="modern-stat-card__label">Agendados</div>
+          <div class="modern-stat-card__subtitle">Encaminhados ao ambulatório</div>
+        </div>
+      </a>
+      <a href="{{ url_for('sisreg.setor_regulacao_lista', q=q) if status=='CANCELADO' else url_for('sisreg.setor_regulacao_lista', status='CANCELADO', q=q) }}" class="modern-stat-card modern-stat-card--success {% if status=='CANCELADO' %}is-active{% endif %}">
+        <div class="modern-stat-card__icon"><i class="bi bi-check2-circle"></i></div>
+        <div class="modern-stat-card__content">
+          <div class="modern-stat-card__number">{{ stats_counts.negados }}</div>
+          <div class="modern-stat-card__label">Negados</div>
+          <div class="modern-stat-card__subtitle">Com justificativa</div>
+        </div>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="modern-filters-modern mb-5">
+    <div class="d-flex align-items-center mb-3">
+      <i class="bi bi-funnel me-2 text-primary"></i>
+      <h5 class="mb-0 text-primary fw-bold">Filtros de Pesquisa</h5>
+    </div>
+    <form method="GET" action="{{ url_for('sisreg.setor_regulacao_lista') }}" class="modern-filters-grid">
+      <div>
+        <label class="form-label text-muted fw-semibold">Nome do Paciente</label>
+        <div class="modern-input-with-icon">
+          <i class="bi bi-person-search icon"></i>
+          <input type="text" class="form-control" name="q" value="{{ request.args.get('q','') }}" placeholder="Digite o nome do paciente...">
+        </div>
+      </div>
+      {% if status %}
+      <input type="hidden" name="status" value="{{ status }}" />
+      {% endif %}
+      <div class="modern-filters-actions">
+        <div class="modern-actions-group">
+          <button type="submit" class="btn btn-filter flex-grow-1">
+            <i class="bi bi-search me-2"></i>Filtrar
+          </button>
+          <a href="{{ url_for('sisreg.setor_regulacao_lista') }}" class="btn btn-clear flex-shrink-0">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Limpar
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% if itens and itens|length > 0 %}
+  <div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-table me-2 text-primary"></i>
+        <h5 class="mb-0 text-primary fw-bold">Solicitações</h5>
+      </div>
+      <div class="d-flex align-items-center text-muted">
+        <i class="bi bi-list-check me-2"></i>
+        <span class="fw-semibold">{{ itens|length }} registros</span>
+      </div>
+    </div>
+
+    <div class="modern-table-modern-wrapper">
+      <div class="table-responsive">
+        <table class="modern-table-modern">
+          <thead>
+            <tr>
+              <th><i class="bi bi-calendar me-1"></i>Data</th>
+              <th><i class="bi bi-person me-1"></i>Paciente</th>
+              <th><i class="bi bi-clipboard-check me-1"></i>Especialidade/Exame</th>
+              <th><i class="bi bi-arrow-right-circle me-1"></i>Fluxo</th>
+              <th><i class="bi bi-flag me-1"></i>Status Setor</th>
+              <th class="text-center"><i class="bi bi-gear me-1"></i>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in itens %}
+            {% set row_status = f.status %}
+            {% set __from_falta_row = f.observacao and 'AMBULATÓRIO - FALTA' in f.observacao and f.status == 'EM_ANALISE' %}
+            <tr class="modern-row-status {% if row_status in ['EM_ANALISE','PENDENTE'] %}modern-row-pendente{% elif row_status=='AGENDADO' %}modern-row-andamento{% elif row_status in ['CANCELADO','CONCLUIDO'] %}modern-row-concluido{% endif %}">
+              <td>{{ f.data_registro | format_date }}</td>
+              <td>
+                <div class="d-flex flex-column">
+                  <strong class="mb-1">{{ f.nome_paciente }}</strong>
+                  <small class="text-muted">CPF: {{ f.cpf or 'N/I' }}</small>
+                </div>
+              </td>
+              <td>{{ f.especialidade }}</td>
+              {# Fluxo - baseado no status atual #}
+              {% set fluxo_label = 'Indefinido' %}
+              {% set fluxo_icon = 'bi-question-circle' %}
+              {% set fluxo_cls = 'bg-light text-dark' %}
+              {% if f.status in ['EM_ANALISE','PENDENTE'] %}
+                {% set fluxo_label = 'Aguardando decisão' %}
+                {% set fluxo_icon = 'bi-hourglass-split' %}
+                {% set fluxo_cls = 'bg-warning text-dark' %}
+              {% elif f.status == 'AGENDADO' %}
+                {% set fluxo_label = 'Encaminhado ao Ambulatório' %}
+                {% set fluxo_icon = 'bi-arrow-right-circle' %}
+                {% set fluxo_cls = 'bg-primary' %}
+              {% elif f.status == 'CONCLUIDO' %}
+                {% set fluxo_label = 'Finalizado' %}
+                {% set fluxo_icon = 'bi-check-circle' %}
+                {% set fluxo_cls = 'bg-success' %}
+              {% elif f.status == 'CANCELADO' %}
+                {% set fluxo_label = 'Encerrado' %}
+                {% set fluxo_icon = 'bi-flag' %}
+                {% set fluxo_cls = 'bg-secondary' %}
+              {% endif %}
+              <td>
+                {% if __from_falta_row %}
+                <span class="badge rounded-pill bg-danger" title="Registro devolvido do ambulatório por falta">
+                  <i class="bi bi-arrow-return-left me-1"></i>Devolvido por Falta
+                </span>
+                {% else %}
+                <span class="badge rounded-pill {{ fluxo_cls }}">
+                  <i class="bi {{ fluxo_icon }} me-1"></i>{{ fluxo_label }}
+                </span>
+                {% endif %}
+              </td>
+              {% set setor_status_label = (f.status | format_status) %}
+              {% if f.status == 'EM_ANALISE' %}
+                {% set setor_status_label = 'Pendente' %}
+              {% endif %}
+              <td>
+                <span class="badge rounded-pill {% if f.status in ['EM_ANALISE','PENDENTE'] %}bg-danger{% elif f.status=='AGENDADO' %}bg-warning text-dark{% elif f.status=='CANCELADO' %}bg-secondary{% elif f.status=='CONCLUIDO' %}bg-success{% else %}bg-light text-dark{% endif %}">
+                  {{ setor_status_label }}
+                </span>
+              </td>
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-2">
+                  {% if ('ALTERAR_STATUS' in current_user.profile or 'ADMIN' in current_user.profile) and f.status == 'EM_ANALISE' %}
+                  <button class="btn btn-sm btn-primary rounded-pill shadow-sm toggle-detail"
+                          data-detail-id="detail-{{ f.id }}" title="Ver e gerenciar">
+                    <i class="bi bi-pencil-square me-1"></i>
+                    <span class="btn-text">Ver e gerenciar</span>
+                  </button>
+                  {% endif %}
+                  <a href="{{ url_for('sisreg.detalhes_formulario', form_id=f.id) }}" class="modern-icon-btn modern-view-btn" title="Ver detalhes">
+                    <i class="bi bi-eye"></i>
+                    <span class="visually-hidden">Ver</span>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            <tr id="detail-{{ f.id }}" class="detail-row" style="display:none;">
+              <td colspan="6">
+                <div class="card shadow-sm border-0 mb-3 inline-detail-card modern-inline-panel animate-in">
+                  <div class="card-body">
+                    {% set _from_falta = f.observacao and 'AMBULATÓRIO - FALTA' in f.observacao and f.status == 'EM_ANALISE' %}
+                    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-2 inline-detail-header modern-inline-header">
+                      <div class="me-2">
+                        <h5 class="mb-1 d-flex align-items-center gap-2">
+                          <i class="bi bi-file-earmark-medical text-primary"></i>
+                          Solicitação #{{ f.id }}
+                        </h5>
+                        <div class="inline-chips">
+                          <span class="chip chip-muted" title="Status atual">
+                            <i class="bi bi-activity me-1"></i>{{ f.status | format_status }}
+                          </span>
+                          {% if _from_falta %}
+                          <span class="chip chip-return chip-falta" title="Registro devolvido do ambulatório por falta">
+                            <i class="bi bi-arrow-return-left me-1"></i>Devolvido por Falta
+                          </span>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 inline-actions">
+                        <a href="{{ url_for('sisreg.detalhes_formulario', form_id=f.id) }}" class="btn btn-outline-secondary btn-sm">
+                          <i class="bi bi-box-arrow-up-right me-1"></i>Abrir página completa
+                        </a>
+                        {# Botão de abrir modal removido a pedido do usuário #}
+                        <button class="btn btn-light btn-sm toggle-detail" data-detail-id="detail-{{ f.id }}">
+                          <i class="bi bi-x-lg me-1"></i> Fechar
+                        </button>
+                      </div>
+                    </div>
+
+                    {# Bloco de informações da solicitação removido: manter apenas ações e eventos #}
+
+                    {% if ('ALTERAR_STATUS' in current_user.profile or 'ADMIN' in current_user.profile) and f.status == 'EM_ANALISE' %}
+                    <div class="row g-4">
+                      <div class="col-lg-8">
+                        <ul class="nav nav-pills modern-inline-tabs" id="inline-tabs-{{ f.id }}" role="tablist">
+                          {% if not _from_falta %}
+                          <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="rev-{{ f.id }}-tab" data-bs-toggle="tab" data-bs-target="#rev-{{ f.id }}" type="button" role="tab">Solicitar Revisão</button>
+                          </li>
+                          {% endif %}
+                          <li class="nav-item" role="presentation">
+                            <button class="nav-link {{ '' if _from_falta else '' }}" id="neg-{{ f.id }}-tab" data-bs-toggle="tab" data-bs-target="#neg-{{ f.id }}" type="button" role="tab">Recusar</button>
+                          </li>
+                          <li class="nav-item" role="presentation">
+                            <button class="nav-link {{ 'active' if _from_falta else '' }}" id="aut-{{ f.id }}-tab" data-bs-toggle="tab" data-bs-target="#aut-{{ f.id }}" type="button" role="tab">{{ 'Reagendar' if _from_falta else 'Autorizar' }}</button>
+                          </li>
+                        </ul>
+                        <div class="tab-content pt-3">
+                          {% if not _from_falta %}
+                          <div class="tab-pane fade show active" id="rev-{{ f.id }}" role="tabpanel">
+                            <form method="POST" action="{{ url_for('sisreg.setor_regulacao_solicitar_revisao', form_id=f.id) }}">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                              <div class="mb-3">
+                                <label class="form-label">Motivo da Solicitação de Revisão</label>
+                                <textarea name="observacao_revisao" class="form-control" rows="3" required placeholder="Descreva as inconsistências..."></textarea>
+                              </div>
+                              <div class="d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-warning text-dark"><i class="bi bi-arrow-counterclockwise me-1"></i>Solicitar Revisão</button>
+                              </div>
+                            </form>
+                          </div>
+                          {% endif %}
+                          <div class="tab-pane fade {{ '' if _from_falta else '' }}" id="neg-{{ f.id }}" role="tabpanel">
+                            <form method="POST" action="{{ url_for('sisreg.setor_regulacao_negar', form_id=f.id) }}">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                              <div class="mb-3">
+                                <label class="form-label">Justificativa da Recusa</label>
+                                <textarea name="justificativa_negativa" class="form-control" rows="3" required></textarea>
+                              </div>
+                              <div class="mb-3">
+                                <label class="form-label">Observação (opcional)</label>
+                                <textarea name="observacao" class="form-control" rows="2" placeholder="Detalhes adicionais para registro"></textarea>
+                              </div>
+                              <div class="d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i>Recusar</button>
+                              </div>
+                            </form>
+                          </div>
+                          <div class="tab-pane fade {{ 'show active' if _from_falta else '' }}" id="aut-{{ f.id }}" role="tabpanel">
+                            <form method="POST" action="{{ url_for('sisreg.setor_regulacao_autorizar', form_id=f.id) }}">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                              <div class="row g-3">
+                                <div class="col-sm-6">
+                                  <label class="form-label">Data do Agendamento</label>
+                                  <input type="date" name="data_atendimento" class="form-control" required>
+                                </div>
+                                <div class="col-sm-6">
+                                  <label class="form-label">Hora do Agendamento</label>
+                                  <input type="time" name="hora_agendamento" class="form-control" required>
+                                </div>
+                                <div class="col-sm-6">
+                                  <label class="form-label">Local de Destino</label>
+                                  <input type="text" name="local_destino" class="form-control" required>
+                                </div>
+                                <div class="col-sm-6">
+                                  <label class="form-label">Médico Responsável</label>
+                                  <input type="text" name="medico_atendimento" class="form-control" required>
+                                </div>
+                                <div class="col-12">
+                                  <label class="form-label">Observação (opcional)</label>
+                                  <textarea name="observacao_autorizacao" class="form-control" rows="2" placeholder="Orientações complementares..."></textarea>
+                                </div>
+                              </div>
+                              <div class="d-flex justify-content-end gap-2 mt-3">
+                                <button type="submit" class="btn btn-success">
+                                  <i class="bi bi-check2-circle me-1"></i>{{ 'Reagendar' if _from_falta else 'Autorizar e Agendar' }}
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-lg-4">
+                        {% set _raw = f.observacao or '' %}
+                        {% set _lines = _raw.replace(' [', '\n[').split('\n') %}
+                        <div>
+                          <h6 class="text-muted mb-2">Eventos</h6>
+                          <div class="event-feed">
+                            <div class="event-card event-initial small">
+                              <div class="event-head">
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Criado</span>
+                                <span class="event-meta small"><i class="bi bi-clock "></i>{{ f.data_registro | format_date_time if f.data_registro else '-' }}{% if f.funcionario and f.funcionario.nome %} | por {{ f.funcionario.nome }}{% endif %}</span>
+                              </div>
+                            </div>
+                            {% for _line in _lines %}
+                            {% set line = _line.strip() %}
+                            {% if line and line[0] == '[' %}
+                            {% set parts = line.split(']') %}
+                            {% set header = parts[0][1:] if parts|length > 0 else '' %}
+                            {% set uhdr = header | upper %}
+                            {% set message = (parts[1] if parts|length > 1 else '') | trim %}
+                            {% set stamp = None %}
+                            {% set base = message %}
+                            {% if message %}
+                              {% set _idx = message.rfind(' - ') %}
+                              {% if _idx != -1 %}
+                                {% set base = message[:_idx] %}
+                                {% set stamp = message[_idx + 3:] %}
+                              {% elif message.startswith('- ') %}
+                                {% set base = '' %}
+                                {% set stamp = message[2:] %}
+                              {% endif %}
+                            {% endif %}
+                            <div class="event-card small">
+                              <div class="event-head">
+                                {% if 'SOLICITAR REVISÃO' in header %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-arrow-counterclockwise me-1"></i>Revisão Solicitada</span>
+                                {% elif 'RESPOSTA REVISÃO' in header %}
+                                <span class="badge bg-primary"><i class="bi bi-reply me-1"></i>Resposta UBS</span>
+                                {% elif 'NEGAR' in header or 'NEGADO' in header %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Negado</span>
+                                {% elif 'REAGENDAR' in header %}
+                                <span class="badge bg-info text-dark"><i class="bi bi-arrow-repeat me-1"></i>Reagendado</span>
+                                {% elif 'AUTORIZAR' in header or 'AUTORIZADO' in header %}
+                                <span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>Autorizado</span>
+                                {% elif 'AMBULAT' in uhdr and 'PRESEN' in uhdr %}
+                                <span class="badge bg-success"><i class="bi bi-person-check me-1"></i>Ambulatório - Presença</span>
+                                {% elif 'AMBULAT' in uhdr and ('FALTA' in uhdr or 'NAO COMPARECEU' in uhdr or 'NÃO COMPARECEU' in uhdr) %}
+                                <span class="badge bg-danger"><i class="bi bi-person-x me-1"></i>Ambulatório - Falta</span>
+                                {% else %}
+                                <span class="badge bg-secondary"><i class="bi bi-chat-left-text me-1"></i>{{ header }}</span>
+                                {% endif %}
+                                {% if stamp %}
+                                <span class="event-meta"><i class="bi bi-clock"></i>{{ stamp }}</span>
+                                {% endif %}
+                              </div>
+                              {% if base and base|trim %}
+                              <div class="event-body">{{ base }}</div>
+                              {% endif %}
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                      <i class="bi bi-info-circle me-1"></i>
+                      Nenhuma ação disponível para este registro.
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="modern-empty-state">
+    <div class="modern-empty-content">
+      <div class="modern-empty-icon">
+        <i class="bi bi-clipboard-check"></i>
+      </div>
+      <h4 class="modern-empty-title">Sem solicitações</h4>
+      <p class="modern-empty-subtitle">Nenhuma solicitação encontrada para este filtro.</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  // Modal removido a pedido do usuário; JS associado também foi removido
+
+  // Toggle inline details panel
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.toggle-detail');
+    if (!btn) return;
+    const id = btn.getAttribute('data-detail-id');
+    if (!id) return;
+    const row = document.getElementById(id);
+    if (!row) return;
+    // Close other open panels
+    document.querySelectorAll('tr.detail-row').forEach(r => {
+      if (r !== row) r.style.display = 'none';
+    });
+    // Toggle this one
+    const visible = row.style.display !== 'none';
+    row.style.display = visible ? 'none' : '';
+    const card = row.querySelector('.inline-detail-card');
+    if (!visible && card) {
+      card.classList.remove('animate-in');
+      // restart animation
+      void card.offsetWidth;
+      card.classList.add('animate-in');
+    }
+    // Update button texts
+    document.querySelectorAll(`button.toggle-detail[data-detail-id="${id}"] .btn-text`).forEach(span => {
+      if (!span) return;
+      span.textContent = row.style.display === 'none' ? 'Ver e gerenciar' : 'Ocultar painel';
+    });
+    // Scroll into view when opening
+    if (row.style.display !== 'none') {
+      setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+  });
+
+  // Enable Bootstrap tooltips in this page (if Bootstrap is available)
+  try {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipTriggerList.forEach(function (el) {
+      if (window.bootstrap && bootstrap.Tooltip) new bootstrap.Tooltip(el);
+    });
+  } catch (e) { /* noop */ }
+</script>
+{% endblock %}

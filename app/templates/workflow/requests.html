@@ -1,0 +1,227 @@
+{% extends "navbar.html" %}
+{% block title %}Exames Recebidos{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+{% endblock %}
+{% block content %}
+<div class="modern-container">
+  <div class="container-fluid px-4 py-4">
+  {% include 'partials/_flash_messages.html' %}
+
+  <div class="modern-header mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-4">
+      <div class="flex-grow-1">
+        <div class="modern-header-content">
+          <h1 class="mb-2">
+            <i class="bi bi-folder-symlink-fill"></i>
+            Exames Recebidos
+            {% if formularios.total is defined %}
+            <span class="modern-header-badge">{{ formularios.total }} registros</span>
+            {% elif formularios|length > 0 %}
+            <span class="modern-header-badge">{{ formularios|length }} registros</span>
+            {% endif %}
+          </h1>
+          <p class="mb-0">Consulte e gerencie todas as solicitações de exames</p>
+        </div>
+      </div>
+      <div class="modern-breadcrumb-actions">
+        <a href="{{ url_for('sisreg.novo_formulario') }}" class="btn modern-btn-primary d-inline-flex align-items-center gap-2 shadow-sm">
+          <i class="bi bi-plus-circle"></i> <span>Novo Exame</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="modern-filters-modern mb-5">
+    <div class="d-flex align-items-center mb-3">
+      <i class="bi bi-funnel me-2 text-primary"></i>
+      <h5 class="mb-0 text-primary fw-bold">Filtros de Pesquisa</h5>
+    </div>
+    <form method="GET" action="{{ url_for('sisreg.formularios') }}" class="modern-filters-grid">
+      <div>
+        <label class="form-label text-muted fw-semibold">Status</label>
+        <select name="status" class="form-control">
+          <option value="">Todos os Status</option>
+          <option value="EM_ANALISE" {% if status_atual == 'EM_ANALISE' %}selected{% endif %}>Em Análise</option>
+          <option value="AGENDADO" {% if status_atual == 'AGENDADO' %}selected{% endif %}>Agendado</option>
+          <option value="PENDENTE" {% if status_atual == 'PENDENTE' %}selected{% endif %}>Pendente</option>
+          <option value="CONCLUIDO" {% if status_atual == 'CONCLUIDO' %}selected{% endif %}>Concluído</option>
+          <option value="CANCELADO" {% if status_atual == 'CANCELADO' %}selected{% endif %}>Cancelado</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label text-muted fw-semibold">Tipo de Data</label>
+        <select name="tipo_data" class="form-control">
+          <option value="registro" {% if tipo_data_atual == 'registro' or not tipo_data_atual %}selected{% endif %}>Data de Criação</option>
+          <option value="agendamento" {% if tipo_data_atual == 'agendamento' %}selected{% endif %}>Data de Agendamento</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label text-muted fw-semibold">Data Inicial</label>
+        <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio_atual or '' }}">
+      </div>
+      <div>
+        <label class="form-label text-muted fw-semibold">Data Final</label>
+        <input type="date" name="data_fim" class="form-control" value="{{ data_fim_atual or '' }}">
+      </div>
+      <div class="modern-filters-actions">
+        <div class="modern-actions-group">
+          <button type="submit" class="btn btn-filter flex-grow-1">
+            <i class="bi bi-search me-2"></i>Filtrar
+          </button>
+          <a href="{{ url_for('sisreg.formularios') }}" class="btn btn-clear flex-shrink-0">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Limpar
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {% set forms_to_iterate = formularios.items if formularios.items is defined else formularios %}
+  {% if forms_to_iterate and forms_to_iterate|length > 0 %}
+  <div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-table me-2 text-primary"></i>
+        <h5 class="mb-0 text-primary fw-bold">Lista de Solicitações</h5>
+      </div>
+      <div class="d-flex align-items-center text-muted">
+        <i class="bi bi-list-check me-2"></i>
+        {% if formularios.items is defined and formularios.total is defined %}
+        <span class="fw-semibold">{{ formularios.items|length }} de {{ formularios.total }} registros</span>
+        {% else %}
+        <span class="fw-semibold">{{ forms_to_iterate|length }} registros</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="modern-table-modern-wrapper">
+      <div class="table-responsive">
+        <table class="modern-table-modern">
+          <thead>
+            <tr>
+              <th><i class="bi bi-person me-1"></i>Solicitante</th>
+              <th><i class="bi bi-clipboard-check me-1"></i>Solicitação</th>
+              <th><i class="bi bi-flag me-1"></i>Status</th>
+              <th><i class="bi bi-person-heart me-1"></i>Paciente</th>
+              <th class="text-center"><i class="bi bi-gear me-1"></i>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in forms_to_iterate %}
+            {% set row_status = f.status %}
+            <tr class="modern-row-status {% if row_status in ['EM_ANALISE','PENDENTE'] %}modern-row-pendente{% elif row_status=='AGENDADO' %}modern-row-andamento{% elif row_status in ['CANCELADO','CONCLUIDO'] %}modern-row-concluido{% endif %}">
+              <td>
+                <div class="d-flex flex-column">
+                  <strong class="mb-1">{{ f.funcionario.nome | truncate(35, False) }}</strong>
+                  <small class="text-muted">{{ f.data_registro | format_date if f.data_registro else 'N/A' }}</small>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex flex-column">
+                  <strong class="mb-1">{{ f.especialidade | default('N/A') }}</strong>
+                  <small class="text-muted">{{ f.medico_solicitante }}</small>
+                </div>
+              </td>
+              <td>
+                <span class="badge rounded-pill {% if f.status=='EM_ANALISE' or f.status=='PENDENTE' %}bg-danger{% elif f.status=='AGENDADO' %}bg-warning text-dark{% elif f.status=='CANCELADO' %}bg-secondary{% elif f.status=='CONCLUIDO' %}bg-success{% else %}bg-light text-dark{% endif %}">
+                  {{ f.status | format_status }}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex flex-column">
+                  <strong class="mb-1">{{ f.nome_paciente | truncate(35, True) }}</strong>
+                  {% if f.cpf %}
+                  <small class="text-muted">CPF: {{ f.cpf }}</small>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-2">
+                  <a href="{{ url_for('sisreg.detalhes_formulario', form_id=f.id) }}" class="modern-icon-btn modern-view-btn" title="Ver detalhes">
+                    <i class="bi bi-eye"></i>
+                    <span class="visually-hidden">Ver</span>
+                  </a>
+                  {% if 'ALTERAR_STATUS' in current_user.profile or 'ADMIN' in current_user.profile %}
+                  <button class="modern-icon-btn modern-danger-btn" data-bs-toggle="modal" data-bs-target="#alterarStatusFormModal" data-form-id="{{ f.id }}" data-current-status="{{ f.status }}" title="Alterar Status">
+                    <i class="bi bi-pencil-square"></i>
+                    <span class="visually-hidden">Editar</span>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="modern-empty-state">
+    <div class="modern-empty-content">
+      <div class="modern-empty-icon">
+        <i class="bi bi-inbox"></i>
+      </div>
+      <h4 class="modern-empty-title">Nenhum exame encontrado</h4>
+      <p class="modern-empty-subtitle">Nenhuma solicitação encontrada para este filtro.</p>
+    </div>
+  </div>
+  {% endif %}
+  {% if formularios.items is defined and (formularios.has_prev or formularios.has_next or formularios.pages > 1) %}
+  <div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Navegação dos formulários">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {% if not formularios.has_prev %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('sisreg.formularios', page=formularios.prev_num, **request.args) if formularios.has_prev else '#' }}" aria-label="Anterior">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
+        {% for page_num in formularios.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+          {% if page_num %}
+            <li class="page-item {% if formularios.page == page_num %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('sisreg.formularios', page=page_num, **request.args) }}">{{ page_num }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not formularios.has_next %}disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('sisreg.formularios', page=formularios.next_num, **request.args) if formularios.has_next else '#' }}" aria-label="Próximo">
+            <span aria-hidden="true">&raquo;</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var alterarStatusModalElement = document.getElementById('alterarStatusFormModal');
+    if (alterarStatusModalElement) {
+        var alterarStatusModal = new bootstrap.Modal(alterarStatusModalElement);
+        var formAlterarStatus = document.getElementById('formAlterarStatus');
+        var modalFormIdStatus = document.getElementById('modalFormIdStatus');
+        var modalCurrentStatus = document.getElementById('modalCurrentStatus');
+        var novoStatusSelect = document.getElementById('novoStatusSelect');
+        alterarStatusModalElement.addEventListener('show.bs.modal', function(event) {
+            var button = event.relatedTarget;
+            var formId = button.dataset.formId;
+            var currentStatus = button.dataset.currentStatus;
+            if (modalFormIdStatus) modalFormIdStatus.textContent = formId;
+            if (modalCurrentStatus) modalCurrentStatus.textContent = currentStatus;
+            if (novoStatusSelect) novoStatusSelect.value = currentStatus;
+            if (formAlterarStatus && formId) {
+                formAlterarStatus.action = "{{ url_for('sisreg.alterar_status_formulario', form_id=0) }}".replace('0', formId);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

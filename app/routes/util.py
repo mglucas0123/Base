@@ -71,3 +71,15 @@ def format_date_filter(value, target_tz_str='Etc/GMT+3', format_str='%d/%m/%Y'):
     except Exception as e:
         print(f"AVISO: Erro na conversão de fuso ou formatação: {e}. Formatando como UTC.")
         return dt_object_utc.strftime(format_str)
+
+def format_status_filter(status_key):
+    if not isinstance(status_key, str):
+        return status_key
+    status_map = {
+        'PENDENTE': 'Pendente',
+        'EM_ANALISE': 'Em Análise',
+        'AGENDADO': 'Agendado',
+        'CONCLUIDO': 'Concluído',
+        'CANCELADO': 'Cancelado'
+    }
+    return status_map.get(status_key.upper(), status_key.replace('_', ' ').capitalize())

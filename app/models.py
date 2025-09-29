@@ -1,7 +1,7 @@
 import enum
 from flask import url_for
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, date
 from flask_security import UserMixin as FSUserMixin, RoleMixin
 from flask_security import AsaList
 from sqlalchemy.ext.mutable import MutableList
@@ -43,12 +43,10 @@ class User(db.Model, FSUserMixin):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     creation_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
-    # Required by Flask-Security for identity/remember tokens
     fs_uniquifier = db.Column(db.String(64), unique=True, nullable=True)
     
     roles = db.relationship('Role', secondary=user_roles, backref='users')
 
-    # Flask-Security expects 'active' attribute; proxy to is_active column
     @property
     def active(self):
         return self.is_active
@@ -73,7 +71,6 @@ class User(db.Model, FSUserMixin):
         """Retorna todas as permissões do usuário (diretas + através de papéis)"""
         permissions = set()
         
-        # FS role permissions are strings
         for role in self.roles:
             if role.permissions:
                 for perm_name in role.permissions:
@@ -88,9 +85,46 @@ class User(db.Model, FSUserMixin):
 class PermissionCatalog(db.Model):
     __tablename__ = 'permission_catalog'
     id = db.Column(db.Integer, primary_key=True)
-    # Kebab-case unique name for a permission (e.g., 'access-panel')
     name = db.Column(db.String(100), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return f'<Permission {self.name}>'
+
+class Formulario(db.Model):
+    __tablename__ = 'formulario'
+    id = db.Column(db.Integer, primary_key=True)
+    data_registro = db.Column(db.DateTime, nullable=False)
+    funcionario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    nome_paciente = db.Column(db.String(100), nullable=False)
+    nascimento = db.Column(db.Date, nullable=False)
+    cpf = db.Column(db.String(20), nullable=False)
+    status = db.Column(db.String(30), default="EM_ANALISE", nullable=False)
+    unidade_saude = db.Column(db.String(100), nullable=False)
+    medico_solicitante = db.Column(db.String(100), nullable=False)
+    especialidade = db.Column(db.String(100), nullable=False)
+    anexo = db.Column(db.String(200), nullable=True)
+    medico_atendimento = db.Column(db.String(100), nullable=True)
+    data_atendimento = db.Column(db.Date, nullable=True)
+    hora_agendamento = db.Column(db.String(10), nullable=True)
+    local_destino = db.Column(db.String(100), nullable=True)
+    observacao = db.Column(db.Text, nullable=True)
+    autorizador_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    assinatura = db.Column(db.String(200), nullable=True)
+    pdf = db.Column(db.String(200), nullable=True)
+    # Workflow: Regulação e Ambulatório
+    justificativa_negativa = db.Column(db.Text, nullable=True)
+    compareceu = db.Column(db.Boolean, nullable=True)
+    procedimento_realizado = db.Column(db.Boolean, nullable=True)
+    resultado_procedimento = db.Column(db.Text, nullable=True)
+
+    funcionario = db.relationship('User', foreign_keys=[funcionario_id], backref="formularios_criados")
+    autorizador = db.relationship('User', foreign_keys=[autorizador_id], backref="formularios_autorizados")
+
+
+class UnidadeSaude(db.Model):
+    __tablename__ = 'unidade_saude'
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), unique=True, nullable=False)
+    status = db.Column(db.String(20), default='ATIVA', nullable=False)
+    data_ultimo_atendimento = db.Column(db.Date, nullable=True)
